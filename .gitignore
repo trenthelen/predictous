@@ -42,3 +42,9 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Cached agent code
+/agents/
+
+# Other
+technical_rules.md
