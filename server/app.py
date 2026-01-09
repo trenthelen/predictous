@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from agent_collector import AgentCollector
+from agent_collector import AgentCollector, AgentStore
 from db import Database
 from predictor import Predictor, PredictionLogger
 from predictor.models import PredictionRequest, PredictionResult
@@ -46,7 +46,8 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting up Predictous API")
     db = Database(DATABASE_PATH)
-    collector = AgentCollector()
+    agent_store = AgentStore(db)
+    collector = AgentCollector(store=agent_store)
     manager = SandboxManager(gateway_url=GATEWAY_URL)
     prediction_logger = PredictionLogger(db)
     predictor = Predictor(collector, manager, prediction_logger=prediction_logger)

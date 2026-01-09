@@ -1,21 +1,29 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from config import NUMINOUS_API_BASE_URL
 from .client import NuminousClient
 from .models import LeaderboardEntry, MinerAgentEntry
 
+if TYPE_CHECKING:
+    from .store import AgentStore
 
 logger = logging.getLogger(__name__)
 
 
 class AgentCollector:
-    def __init__(self, agents_dir: Path = Path("./agents")):
+    def __init__(
+        self,
+        agents_dir: Path = Path("./agents"),
+        store: "AgentStore | None" = None,
+    ):
         self.client = NuminousClient(NUMINOUS_API_BASE_URL)
         self.agents_dir = agents_dir
         self.agents_dir.mkdir(parents=True, exist_ok=True)
+        self._store = store
 
         self._leaderboard_cache: tuple[list[LeaderboardEntry], datetime] | None = None
         self._agents_cache: dict[tuple[int, str], tuple[list[MinerAgentEntry], datetime]] = {}
@@ -137,6 +145,9 @@ class AgentCollector:
         for agent in agents:
             code = self.get_agent_code(miner_uid, miner_hotkey, agent.version_id)
             if code is not None and code.strip():
+                # Record agent metadata to database
+                if self._store:
+                    self._store.record(agent, miner_uid, miner_hotkey)
                 return agent.version_id, code
 
         logger.error(f"No available agent code for miner {miner_uid}")
