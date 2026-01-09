@@ -111,13 +111,14 @@ def client(temp_db_path, mock_predictor, monkeypatch):
     mock_collector = MagicMock()
     mock_manager = MagicMock()
 
-    with patch("server.app.AgentCollector", return_value=mock_collector):
-        with patch("server.app.SandboxManager", return_value=mock_manager):
-            with patch("server.app.Predictor", return_value=mock_predictor):
-                import server.app as app_module
+    with patch("server.app.check_gateway_health"):  # Skip gateway check in tests
+        with patch("server.app.AgentCollector", return_value=mock_collector):
+            with patch("server.app.SandboxManager", return_value=mock_manager):
+                with patch("server.app.Predictor", return_value=mock_predictor):
+                    import server.app as app_module
 
-                with TestClient(app_module.app) as client:
-                    yield client
+                    with TestClient(app_module.app) as client:
+                        yield client
 
 
 class TestHealthEndpoint:

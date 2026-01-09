@@ -2,11 +2,13 @@
 
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import uuid4
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -31,30 +33,71 @@ logger = logging.getLogger(__name__)
 # Config from environment
 RATE_LIMIT_REQUESTS_PER_DAY = int(os.environ.get("RATE_LIMIT_REQUESTS_PER_DAY", "20"))
 DAILY_BUDGET_USD = float(os.environ.get("DAILY_BUDGET_USD", "5.0"))
-GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://localhost:8000")
+GATEWAY_URL = os.environ.get("GATEWAY_URL", "")
 DATABASE_PATH = os.environ.get("DATABASE_PATH", "./predictous.db")
 
 # Global instances (initialized on startup)
 db: Database | None = None
 predictor: Predictor | None = None
+sandbox_manager: SandboxManager | None = None
+
+
+def validate_config() -> None:
+    """Validate required configuration. Exits if invalid."""
+    errors = []
+
+    if not GATEWAY_URL:
+        errors.append("GATEWAY_URL is required")
+
+    if RATE_LIMIT_REQUESTS_PER_DAY <= 0:
+        errors.append("RATE_LIMIT_REQUESTS_PER_DAY must be positive")
+
+    if DAILY_BUDGET_USD <= 0:
+        errors.append("DAILY_BUDGET_USD must be positive")
+
+    if errors:
+        for error in errors:
+            logger.error(f"Config error: {error}")
+        sys.exit(1)
+
+
+def check_gateway_health() -> None:
+    """Check that gateway is reachable. Exits if not."""
+    health_url = f"{GATEWAY_URL}/health"
+    try:
+        response = httpx.get(health_url, timeout=10)
+        response.raise_for_status()
+        logger.info(f"Gateway health check passed: {GATEWAY_URL}")
+    except httpx.RequestError as e:
+        logger.error(f"Gateway unreachable at {health_url}: {e}")
+        sys.exit(1)
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Gateway health check failed: {e.response.status_code}")
+        sys.exit(1)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize resources on startup, cleanup on shutdown."""
-    global db, predictor
+    global db, predictor, sandbox_manager
 
     logger.info("Starting up Predictous API")
+
+    validate_config()
+    check_gateway_health()
+
     db = Database(DATABASE_PATH)
     agent_store = AgentStore(db)
     collector = AgentCollector(store=agent_store)
-    manager = SandboxManager(gateway_url=GATEWAY_URL)
+    sandbox_manager = SandboxManager(gateway_url=GATEWAY_URL)
     prediction_logger = PredictionLogger(db)
-    predictor = Predictor(collector, manager, prediction_logger=prediction_logger)
+    predictor = Predictor(collector, sandbox_manager, prediction_logger=prediction_logger)
 
     yield
 
     logger.info("Shutting down Predictous API")
+    if sandbox_manager:
+        sandbox_manager.close()
     if db:
         db.close()
 
