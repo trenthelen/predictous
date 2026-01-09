@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import UUID
 
+from config import NUMINOUS_API_BASE_URL
 from .client import NuminousClient
 from .models import LeaderboardEntry, MinerAgentEntry
 
@@ -11,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class AgentCollector:
-    def __init__(self, client: NuminousClient, agents_dir: Path = Path("./agents")):
-        self.client = client
+    def __init__(self, agents_dir: Path = Path("./agents")):
+        self.client = NuminousClient(NUMINOUS_API_BASE_URL)
         self.agents_dir = agents_dir
         self.agents_dir.mkdir(parents=True, exist_ok=True)
 
@@ -106,8 +107,8 @@ class AgentCollector:
 
         return code
 
-    def get_best_agent(self, miner_uid: int, miner_hotkey: str) -> tuple[UUID, str] | None:
-        """Get the best available agent code for a miner.
+    def get_agent(self, miner_uid: int, miner_hotkey: str) -> tuple[UUID, str] | None:
+        """Get agent code for a miner.
 
         Tries agents from newest to oldest, returns first one with available code.
         """

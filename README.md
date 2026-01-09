@@ -1,3 +1,34 @@
+## Agent Collector
+
+Fetches agent code from Numinous API with caching.
+
+### Usage
+
+```python
+from agent_collector import AgentCollector
+
+collector = AgentCollector()
+
+# By rank (0-indexed)
+uid, hotkey = collector.get_miner_by_rank(0)
+
+# Get agent (tries newest first, falls back on 4XX)
+result = collector.get_agent(uid, hotkey)
+if result:
+    version_id, code = result
+```
+
+### Caching
+
+| Data | TTL | Storage |
+|------|-----|---------|
+| Leaderboard | Until 11 PM UTC | Memory |
+| Agent list | Until 11 PM UTC | Memory |
+| Agent code (success) | Forever | `./agents/{version_id}.py` |
+| Agent code (4XX) | Until 11 PM UTC | Memory |
+
+---
+
 ## Agent Runner (Sandbox)
 
 Runs numinous-compatible agents in isolated Docker containers with cost tracking.
