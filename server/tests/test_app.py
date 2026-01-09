@@ -8,7 +8,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from predictor.models import AgentPrediction, PredictionResult
+from predictor.models import AgentFailure, AgentPrediction, PredictionResult
+from sandbox.models import SandboxErrorType
 
 
 @pytest.fixture
@@ -225,7 +226,9 @@ class TestRateLimiting:
             json={"question": "Test?", "resolution_criteria": "Test"},
         )
         assert response.status_code == 429
-        assert "Rate limit exceeded" in response.json()["detail"]
+        error = response.json()["detail"]
+        assert "Rate limit exceeded" in error["message"]
+        assert error["error_code"] == "rate_limit_exceeded"
 
     def test_rate_limit_enforced_council(self, client):
         """Test that rate limit accounts for council mode (3 units each)."""
@@ -242,7 +245,9 @@ class TestRateLimiting:
             json={"question": "Test?", "resolution_criteria": "Test"},
         )
         assert response.status_code == 429
-        assert "needs 3 units but you only have 2" in response.json()["detail"]
+        error = response.json()["detail"]
+        assert "needs 3 units but you only have 2" in error["message"]
+        assert error["error_code"] == "rate_limit_exceeded"
 
 
 class TestBudgetLimit:
@@ -284,4 +289,35 @@ class TestBudgetLimit:
             },
         )
         assert response.status_code == 503
-        assert "budget exceeded" in response.json()["detail"]
+        error = response.json()["detail"]
+        assert "budget exceeded" in error["message"]
+        assert error["error_code"] == "budget_exceeded"
+
+
+class TestQueueFull:
+    def test_queue_full_returns_503(self, client, mock_predictor):
+        """Test that queue full error returns HTTP 503."""
+        # Mock predictor to return a queue full failure
+        mock_predictor.predict_champion.return_value = PredictionResult(
+            status="error",
+            error="Server busy",
+            failures=[
+                AgentFailure(
+                    miner_uid=1,
+                    rank=0,
+                    error="Server busy. Max 6 agents running, 6 queued.",
+                    error_type=SandboxErrorType.QUEUE_FULL,
+                )
+            ],
+            total_cost=0.0,
+        )
+
+        response = client.post(
+            "/predict/champion",
+            json={"question": "Test?", "resolution_criteria": "Test"},
+        )
+
+        assert response.status_code == 503
+        error = response.json()["detail"]
+        assert "Server busy" in error["message"]
+        assert error["error_code"] == "queue_full"

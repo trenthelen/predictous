@@ -18,6 +18,7 @@ from db import Database
 from predictor import Predictor, PredictionLogger
 from predictor.models import PredictionRequest, PredictionResult
 from sandbox import SandboxManager
+from sandbox.models import SandboxErrorType
 
 load_dotenv()
 
@@ -63,7 +64,7 @@ def validate_config() -> None:
 
 def check_gateway_health() -> None:
     """Check that gateway is reachable. Exits if not."""
-    health_url = f"{GATEWAY_URL}/health"
+    health_url = f"{GATEWAY_URL}/api/health"
     try:
         response = httpx.get(health_url, timeout=10)
         response.raise_for_status()
@@ -145,6 +146,26 @@ class PredictResponse(BaseModel):
     error: Optional[str] = None
 
 
+class ErrorResponse(BaseModel):
+    """Error response returned by API."""
+
+    message: str
+    error_code: str
+
+
+# Common error responses for predict endpoints
+PREDICT_ERROR_RESPONSES = {
+    429: {
+        "model": ErrorResponse,
+        "description": "Rate limit exceeded (per-IP daily quota)",
+    },
+    503: {
+        "model": ErrorResponse,
+        "description": "Service unavailable (daily budget exceeded or queue full)",
+    },
+}
+
+
 # Helpers
 
 
@@ -163,7 +184,10 @@ def check_rate_limit(ip: str, units: int = 1) -> None:
     if used + units > RATE_LIMIT_REQUESTS_PER_DAY:
         raise HTTPException(
             status_code=429,
-            detail=f"Rate limit exceeded. This request needs {units} units but you only have {RATE_LIMIT_REQUESTS_PER_DAY - used} remaining.",
+            detail={
+                "message": f"Rate limit exceeded. This request needs {units} units but you only have {RATE_LIMIT_REQUESTS_PER_DAY - used} remaining.",
+                "error_code": "rate_limit_exceeded",
+            },
         )
 
 
@@ -174,7 +198,10 @@ def check_budget() -> None:
     if used >= DAILY_BUDGET_USD:
         raise HTTPException(
             status_code=503,
-            detail="Daily budget exceeded. Service temporarily unavailable.",
+            detail={
+                "message": "Daily budget exceeded. Service temporarily unavailable.",
+                "error_code": "budget_exceeded",
+            },
         )
 
 
@@ -208,6 +235,17 @@ def run_prediction(
         result = predictor.predict_selected(prediction_request, miner_uid, request_id)
     else:
         raise ValueError(f"Unknown mode: {mode}")
+
+    # Check for queue full error
+    for failure in result.failures:
+        if failure.error_type == SandboxErrorType.QUEUE_FULL:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": "Server busy. Too many concurrent requests. Please try again later.",
+                    "error_code": "queue_full",
+                },
+            )
 
     # Record cost
     if result.total_cost > 0:
@@ -258,19 +296,19 @@ async def list_agents():
     return AgentsResponse(agents=agents)
 
 
-@app.post("/predict/champion", response_model=PredictResponse)
+@app.post("/predict/champion", response_model=PredictResponse, responses=PREDICT_ERROR_RESPONSES)
 async def predict_champion(request: Request, prediction_request: PredictionRequest):
     """Get prediction from top-ranked agent."""
     return run_prediction(request, prediction_request, "champion")
 
 
-@app.post("/predict/council", response_model=PredictResponse)
+@app.post("/predict/council", response_model=PredictResponse, responses=PREDICT_ERROR_RESPONSES)
 async def predict_council(request: Request, prediction_request: PredictionRequest):
     """Get averaged prediction from top 3 agents."""
     return run_prediction(request, prediction_request, "council")
 
 
-@app.post("/predict/selected/{miner_uid}", response_model=PredictResponse)
+@app.post("/predict/selected/{miner_uid}", response_model=PredictResponse, responses=PREDICT_ERROR_RESPONSES)
 async def predict_selected(
     request: Request, miner_uid: int, prediction_request: PredictionRequest
 ):
