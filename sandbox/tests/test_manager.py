@@ -1,8 +1,13 @@
 """Tests for SandboxManager."""
 
+import threading
+import time
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from sandbox import SandboxManager, SandboxErrorType
+from sandbox.models import SandboxResult
 
 
 # Simple agent that returns a fixed prediction
@@ -159,3 +164,137 @@ def agent_main(event_data):
         # Cost should be 0 since the agent didn't make any gateway calls
         assert result.cost == 0.0
         assert isinstance(result.cost, float)
+
+
+class TestConcurrencyControl:
+    """Tests for concurrency limiting (mocked, no Docker required)."""
+
+    @pytest.fixture
+    def mock_manager(self, monkeypatch):
+        """Create a SandboxManager with mocked Docker and proxy."""
+        # Set low limits for testing
+        monkeypatch.setenv("MAX_CONCURRENT_AGENTS", "2")
+        monkeypatch.setenv("MAX_QUEUED_AGENTS", "2")
+
+        # Reload module to pick up new env vars
+        import sandbox.manager
+        import importlib
+        importlib.reload(sandbox.manager)
+
+        with patch("sandbox.manager.CostTrackingProxy"):
+            with patch("sandbox.manager.docker.from_env"):
+                with patch.object(sandbox.manager.SandboxManager, "_cleanup_old_containers"):
+                    with patch.object(sandbox.manager.SandboxManager, "_build_image"):
+                        with patch.object(sandbox.manager.SandboxManager, "_create_network"):
+                            mgr = sandbox.manager.SandboxManager(gateway_url="http://localhost:8000")
+                            yield mgr
+
+    def test_queue_full_rejected(self, mock_manager):
+        """Test that requests are rejected when queue is full."""
+        results = []
+        started = threading.Event()
+
+        def slow_internal(*args, **kwargs):
+            started.set()
+            time.sleep(0.5)
+            return SandboxResult(status="success", output={"event_id": "test", "prediction": 0.5})
+
+        mock_manager._run_agent_internal = slow_internal
+
+        def run_agent():
+            result = mock_manager.run_agent(
+                agent_code="test",
+                event_data={"event_id": "test"},
+            )
+            results.append(result)
+
+        # Start 4 threads (2 running + 2 queued = at capacity)
+        threads = [threading.Thread(target=run_agent) for _ in range(4)]
+        for t in threads:
+            t.start()
+
+        # Wait for first agent to start running
+        started.wait(timeout=2)
+        time.sleep(0.1)  # Give time for other threads to queue
+
+        # 5th request should be rejected immediately
+        result = mock_manager.run_agent(
+            agent_code="test",
+            event_data={"event_id": "test"},
+        )
+
+        assert result.status == "error"
+        assert result.error_type == SandboxErrorType.QUEUE_FULL
+        assert "Server busy" in result.error
+
+        # Clean up threads
+        for t in threads:
+            t.join(timeout=2)
+
+    def test_concurrent_limit_respected(self, mock_manager):
+        """Test that max concurrent agents is respected."""
+        concurrent_count = []
+        max_concurrent = 0
+        lock = threading.Lock()
+
+        def tracking_internal(*args, **kwargs):
+            nonlocal max_concurrent
+            with lock:
+                concurrent_count.append(1)
+                current = sum(concurrent_count)
+                if current > max_concurrent:
+                    max_concurrent = current
+
+            time.sleep(0.2)
+
+            with lock:
+                concurrent_count.pop()
+
+            return SandboxResult(status="success", output={"event_id": "test", "prediction": 0.5})
+
+        mock_manager._run_agent_internal = tracking_internal
+
+        # Run 4 agents (should be limited to 2 concurrent)
+        threads = []
+        for _ in range(4):
+            t = threading.Thread(
+                target=mock_manager.run_agent,
+                kwargs={"agent_code": "test", "event_data": {"event_id": "test"}},
+            )
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join(timeout=5)
+
+        # Max concurrent should be 2 (the limit)
+        assert max_concurrent == 2
+
+    def test_semaphore_released_on_error(self, mock_manager):
+        """Test that semaphore is released even when internal method raises."""
+        call_count = 0
+
+        def failing_internal(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise RuntimeError("Simulated failure")
+            return SandboxResult(status="success", output={"event_id": "test", "prediction": 0.5})
+
+        mock_manager._run_agent_internal = failing_internal
+
+        # First call will fail
+        result1 = mock_manager.run_agent(
+            agent_code="test",
+            event_data={"event_id": "test"},
+        )
+
+        # Semaphore should be released, allowing second call
+        result2 = mock_manager.run_agent(
+            agent_code="test",
+            event_data={"event_id": "test"},
+        )
+
+        # First call failed but semaphore was released
+        # Second call should succeed
+        assert result2.status == "success"

@@ -14,6 +14,7 @@ class SandboxErrorType(str, Enum):
     INVALID_OUTPUT = "invalid_output"
     AGENT_ERROR = "agent_error"
     BUDGET_EXCEEDED = "budget_exceeded"
+    QUEUE_FULL = "queue_full"
 
 
 class SandboxResult(BaseModel):

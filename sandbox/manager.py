@@ -8,7 +8,9 @@ a cost-tracking proxy that enforces budget limits.
 
 import json
 import logging
+import os
 import shutil
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -37,6 +39,10 @@ DEFAULT_TIMEOUT = 120
 DEFAULT_CHUTES_BUDGET = 0.02  # $0.02 for LLM calls
 DEFAULT_DESEARCH_BUDGET = 0.10  # $0.10 for search/crawl
 DEFAULT_PROXY_PORT = 8888
+
+# Concurrency limits (from env)
+MAX_CONCURRENT_AGENTS = int(os.environ.get("MAX_CONCURRENT_AGENTS", "6"))
+MAX_QUEUED_AGENTS = int(os.environ.get("MAX_QUEUED_AGENTS", "6"))
 
 
 class SandboxManager:
@@ -108,7 +114,15 @@ class SandboxManager:
         # Create network for sandbox containers
         self._create_network()
 
-        logger.info(f"SandboxManager initialized with gateway: {gateway_url}")
+        # Concurrency control
+        self._semaphore = threading.Semaphore(MAX_CONCURRENT_AGENTS)
+        self._waiting_count = 0
+        self._waiting_lock = threading.Lock()
+
+        logger.info(
+            f"SandboxManager initialized with gateway: {gateway_url}, "
+            f"max_concurrent={MAX_CONCURRENT_AGENTS}, max_queued={MAX_QUEUED_AGENTS}"
+        )
 
     def __enter__(self) -> "SandboxManager":
         return self
@@ -191,6 +205,45 @@ class SandboxManager:
                 error="event_data must be a dictionary",
                 error_type=SandboxErrorType.INVALID_OUTPUT,
             )
+
+        # Check queue limit before waiting
+        with self._waiting_lock:
+            if self._waiting_count >= MAX_QUEUED_AGENTS:
+                return SandboxResult(
+                    status="error",
+                    error=f"Server busy. Max {MAX_CONCURRENT_AGENTS} agents running, {MAX_QUEUED_AGENTS} queued. Try again later.",
+                    error_type=SandboxErrorType.QUEUE_FULL,
+                )
+            self._waiting_count += 1
+
+        try:
+            self._semaphore.acquire()
+            with self._waiting_lock:
+                self._waiting_count -= 1
+            try:
+                return self._run_agent_internal(
+                    agent_code, event_data, run_id=run_id, timeout=timeout, env_vars=env_vars
+                )
+            except Exception as e:
+                logger.error(f"Agent execution failed: {e}")
+                return SandboxResult(
+                    status="error",
+                    error=str(e),
+                    error_type=SandboxErrorType.CONTAINER_ERROR,
+                )
+        finally:
+            self._semaphore.release()
+
+    def _run_agent_internal(
+        self,
+        agent_code: str,
+        event_data: dict,
+        *,
+        run_id: Optional[str] = None,
+        timeout: int = DEFAULT_TIMEOUT,
+        env_vars: Optional[dict[str, str]] = None,
+    ) -> SandboxResult:
+        """Internal method that runs agent after acquiring semaphore."""
 
         run_id = run_id or str(uuid.uuid4())
         temp_dir = create_temp_dir(prefix="sandbox_predictous_", base_dir=self.temp_base_dir)
