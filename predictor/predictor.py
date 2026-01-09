@@ -2,12 +2,16 @@
 
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from agent_collector import AgentCollector
 from sandbox import SandboxManager, SandboxResult
 
 from .models import AgentFailure, AgentPrediction, PredictionRequest, PredictionResult
+
+if TYPE_CHECKING:
+    from .logger import PredictionLogger
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +32,7 @@ class Predictor:
         collector: AgentCollector,
         sandbox_manager: SandboxManager,
         timeout: int = DEFAULT_TIMEOUT,
+        prediction_logger: "PredictionLogger | None" = None,
     ):
         """
         Initialize the predictor.
@@ -36,10 +41,12 @@ class Predictor:
             collector: AgentCollector for fetching agent code
             sandbox_manager: SandboxManager for running agents
             timeout: Maximum execution time per agent in seconds (default 150)
+            prediction_logger: Optional logger for storing predictions
         """
         self._collector = collector
         self._manager = sandbox_manager
         self._timeout = timeout
+        self._logger = prediction_logger
 
     def _build_event_data(self, request: PredictionRequest) -> dict:
         """Convert PredictionRequest to the event format agents expect."""
@@ -57,6 +64,8 @@ class Predictor:
         hotkey: str,
         rank: int,
         event_data: dict,
+        request: PredictionRequest,
+        request_id: str | None,
     ) -> tuple[AgentPrediction | None, AgentFailure | None]:
         """
         Run a single agent and return either a prediction or failure.
@@ -83,19 +92,49 @@ class Predictor:
         )
 
         if sandbox_result.status == "success" and sandbox_result.output:
+            prediction_value = sandbox_result.output["prediction"]
+            reasoning = sandbox_result.output.get("reasoning")
+
+            # Log successful prediction
+            if self._logger and request_id:
+                self._logger.log(
+                    request_id=request_id,
+                    version_id=version_id,
+                    request=request,
+                    prediction=prediction_value,
+                    reasoning=reasoning,
+                    cost=sandbox_result.cost,
+                    status="success",
+                )
+
             return AgentPrediction(
                 miner_uid=uid,
                 rank=rank,
                 version_id=version_id,
-                prediction=sandbox_result.output["prediction"],
-                reasoning=sandbox_result.output.get("reasoning"),
+                prediction=prediction_value,
+                reasoning=reasoning,
                 cost=sandbox_result.cost,
             ), None
         else:
+            error_msg = sandbox_result.error or "Unknown error"
+
+            # Log failed prediction
+            if self._logger and request_id:
+                self._logger.log(
+                    request_id=request_id,
+                    version_id=version_id,
+                    request=request,
+                    prediction=None,
+                    reasoning=None,
+                    cost=sandbox_result.cost,
+                    status="error",
+                    error=error_msg,
+                )
+
             return None, AgentFailure(
                 miner_uid=uid,
                 rank=rank,
-                error=sandbox_result.error or "Unknown error",
+                error=error_msg,
                 error_type=sandbox_result.error_type,
             )
 
@@ -124,7 +163,9 @@ class Predictor:
             )
 
         event_data = self._build_event_data(request)
-        prediction, failure = self._run_single_agent(uid, hotkey, 0, event_data)
+        prediction, failure = self._run_single_agent(
+            uid, hotkey, 0, event_data, request, request_id
+        )
 
         if prediction:
             return PredictionResult(
@@ -183,7 +224,7 @@ class Predictor:
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
                 executor.submit(
-                    self._run_single_agent, uid, hotkey, rank, event_data
+                    self._run_single_agent, uid, hotkey, rank, event_data, request, request_id
                 ): (rank, uid)
                 for rank, uid, hotkey in agents
             }
@@ -259,7 +300,9 @@ class Predictor:
             rank = -1  # Should not happen, but handle gracefully
 
         event_data = self._build_event_data(request)
-        prediction, failure = self._run_single_agent(uid, hotkey, rank, event_data)
+        prediction, failure = self._run_single_agent(
+            uid, hotkey, rank, event_data, request, request_id
+        )
 
         if prediction:
             return PredictionResult(

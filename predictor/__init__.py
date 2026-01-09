@@ -26,11 +26,13 @@ Usage:
         result = predictor.predict_selected(request, miner_uid=123)
 """
 
+from .logger import PredictionLogger
 from .models import AgentFailure, AgentPrediction, PredictionRequest, PredictionResult
 from .predictor import Predictor
 
 __all__ = [
     "Predictor",
+    "PredictionLogger",
     "PredictionRequest",
     "PredictionResult",
     "AgentPrediction",

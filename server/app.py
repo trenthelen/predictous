@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from agent_collector import AgentCollector
 from db import Database
-from predictor import Predictor
+from predictor import Predictor, PredictionLogger
 from predictor.models import PredictionRequest, PredictionResult
 from sandbox import SandboxManager
 
@@ -48,7 +48,8 @@ async def lifespan(app: FastAPI):
     db = Database(DATABASE_PATH)
     collector = AgentCollector()
     manager = SandboxManager(gateway_url=GATEWAY_URL)
-    predictor = Predictor(collector, manager)
+    prediction_logger = PredictionLogger(db)
+    predictor = Predictor(collector, manager, prediction_logger=prediction_logger)
 
     yield
 
