@@ -2,8 +2,8 @@
 SandboxManager - runs Python agents in isolated Docker containers.
 
 This is a simplified version of the numinous validator sandbox,
-without bittensor wallet signing. Agents can access the gateway
-directly via the GATEWAY_URL environment variable.
+without bittensor wallet signing. Agents access the gateway through
+a cost-tracking proxy that enforces budget limits.
 """
 
 import json
@@ -17,6 +17,7 @@ import docker
 import docker.errors
 import requests.exceptions
 
+from sandbox.cost_proxy import CostTrackingProxy
 from sandbox.models import AgentOutput, SandboxErrorType, SandboxResult
 from sandbox.utils.docker import build_image, image_exists
 from sandbox.utils.temp import cleanup_temp_dir, create_temp_dir
@@ -32,6 +33,9 @@ MEMORY_LIMIT = "768m"
 CPU_QUOTA = 50000  # 0.5 CPU
 CPU_PERIOD = 100000
 DEFAULT_TIMEOUT = 120
+DEFAULT_CHUTES_BUDGET = 0.02  # $0.02 for LLM calls
+DEFAULT_DESEARCH_BUDGET = 0.10  # $0.10 for search/crawl
+DEFAULT_PROXY_PORT = 8888
 
 
 class SandboxManager:
@@ -39,7 +43,7 @@ class SandboxManager:
     Manages Docker sandbox execution for agents.
 
     Usage:
-        with SandboxManager(gateway_url="http://host.docker.internal:8000") as manager:
+        with SandboxManager(gateway_url="http://localhost:8000") as manager:
             result = manager.run_agent(
                 agent_code=open("my_agent.py").read(),
                 event_data={"event_id": "123", "title": "Will X happen?"},
@@ -50,6 +54,9 @@ class SandboxManager:
         self,
         gateway_url: str,
         *,
+        chutes_budget: float = DEFAULT_CHUTES_BUDGET,
+        desearch_budget: float = DEFAULT_DESEARCH_BUDGET,
+        proxy_port: int = DEFAULT_PROXY_PORT,
         force_rebuild: bool = False,
         temp_base_dir: Optional[Path] = None,
     ) -> None:
@@ -57,12 +64,31 @@ class SandboxManager:
         Initialize the sandbox manager.
 
         Args:
-            gateway_url: URL of the gateway API (e.g., "http://host.docker.internal:8000")
+            gateway_url: URL of the gateway API (e.g., "http://localhost:8000")
+            chutes_budget: Maximum cost for LLM calls per run in USD (default $0.02)
+            desearch_budget: Maximum cost for search/crawl per run in USD (default $0.10)
+            proxy_port: Port for the cost-tracking proxy (default 8888)
             force_rebuild: Force rebuild of Docker images
             temp_base_dir: Base directory for temporary sandbox files
         """
         self.gateway_url = gateway_url
+        self.chutes_budget = chutes_budget
+        self.desearch_budget = desearch_budget
+        self.proxy_port = proxy_port
         self.temp_base_dir = temp_base_dir
+
+        # Start cost-tracking proxy
+        self.cost_proxy = CostTrackingProxy(
+            gateway_url=gateway_url,
+            chutes_budget=chutes_budget,
+            desearch_budget=desearch_budget,
+            port=proxy_port,
+        )
+        self.cost_proxy.start_background()
+        logger.info(
+            f"Cost-tracking proxy started on port {proxy_port}, "
+            f"budgets: chutes=${chutes_budget}, desearch=${desearch_budget}"
+        )
 
         # Connect to Docker
         try:
@@ -92,6 +118,8 @@ class SandboxManager:
     def close(self) -> None:
         """Clean up resources."""
         self._cleanup_old_containers()
+        if self.cost_proxy:
+            self.cost_proxy.stop()
         logger.info("SandboxManager closed")
 
     def _cleanup_old_containers(self) -> None:
@@ -187,6 +215,10 @@ class SandboxManager:
                 env_vars=env_vars or {},
             )
 
+            # Get cost from proxy and add to result
+            result.cost = self.cost_proxy.get_cost(run_id)
+            logger.info(f"Run {run_id} completed, cost=${result.cost:.6f}")
+
             return result
 
         except Exception as e:
@@ -195,9 +227,12 @@ class SandboxManager:
                 status="error",
                 error=str(e),
                 error_type=SandboxErrorType.CONTAINER_ERROR,
+                cost=self.cost_proxy.get_cost(run_id),
             )
         finally:
             cleanup_temp_dir(temp_dir)
+            # Clear cost tracking for this run
+            self.cost_proxy.clear_run(run_id)
 
     def _run_container(
         self,
@@ -218,8 +253,9 @@ class SandboxManager:
                 name=sandbox_id,
                 volumes={str(temp_dir): {"bind": "/sandbox", "mode": "rw"}},
                 environment={
-                    "GATEWAY_URL": self.gateway_url,
-                    "SANDBOX_PROXY_URL": self.gateway_url,  # Numinous agent compatibility
+                    # Point to cost-tracking proxy, not gateway directly
+                    "GATEWAY_URL": self.cost_proxy.proxy_url,
+                    "SANDBOX_PROXY_URL": self.cost_proxy.proxy_url,  # Numinous agent compatibility
                     "RUN_ID": run_id,
                     "PYTHONUNBUFFERED": "1",
                     "PYTHONDONTWRITEBYTECODE": "1",

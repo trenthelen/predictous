@@ -13,6 +13,7 @@ class SandboxErrorType(str, Enum):
     CONTAINER_ERROR = "container_error"
     INVALID_OUTPUT = "invalid_output"
     AGENT_ERROR = "agent_error"
+    BUDGET_EXCEEDED = "budget_exceeded"
 
 
 class SandboxResult(BaseModel):
@@ -30,6 +31,7 @@ class SandboxResult(BaseModel):
     error_type: Optional[SandboxErrorType] = Field(
         default=None, description="Error category"
     )
+    cost: float = Field(default=0.0, description="Total cost of this run in USD")
 
 
 class AgentOutput(BaseModel):

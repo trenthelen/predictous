@@ -71,15 +71,16 @@ class TestSandboxManager:
         assert result.output["prediction"] == 0.75
         assert result.error is None
 
-    def test_gateway_url_passed_to_agent(self, manager):
-        """Test that GATEWAY_URL env var is passed to the agent."""
+    def test_gateway_url_points_to_proxy(self, manager):
+        """Test that GATEWAY_URL env var points to the cost-tracking proxy."""
         result = manager.run_agent(
             agent_code=GATEWAY_AWARE_AGENT,
             event_data={"event_id": "test-456", "title": "Test event"},
         )
 
         assert result.status == "success"
-        assert "host.docker.internal:8000" in result.output["reasoning"]
+        # Agents should see the proxy URL (port 8888), not the direct gateway
+        assert "host.docker.internal:8888" in result.output["reasoning"]
 
     def test_agent_error(self, manager):
         """Test handling of agent that raises an exception."""
@@ -146,3 +147,15 @@ def agent_main(event_data):
 
         assert result.status == "success"
         assert "hello" in result.output["reasoning"]
+
+    def test_result_has_cost_field(self, manager):
+        """Test that SandboxResult includes cost tracking."""
+        result = manager.run_agent(
+            agent_code=SIMPLE_AGENT,
+            event_data={"event_id": "test-cost", "title": "Test"},
+        )
+
+        assert result.status == "success"
+        # Cost should be 0 since the agent didn't make any gateway calls
+        assert result.cost == 0.0
+        assert isinstance(result.cost, float)
