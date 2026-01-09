@@ -153,3 +153,71 @@ result.failures           # list of AgentFailure
 result.total_cost         # total cost in USD
 result.error              # error message if failed
 ```
+
+---
+
+## Server
+
+FastAPI server exposing prediction endpoints with rate limiting and budget tracking.
+
+### Running
+
+```bash
+# Configure via .env (see .env.example)
+python -m server.app
+```
+
+### Configuration
+
+Environment variables (via `.env`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVER_HOST` | `0.0.0.0` | Server bind address |
+| `SERVER_PORT` | `8080` | Server port |
+| `RATE_LIMIT_REQUESTS_PER_DAY` | `20` | Max requests per IP per day |
+| `DAILY_BUDGET_USD` | `5.0` | Global daily budget limit |
+| `GATEWAY_URL` | `http://localhost:8000` | Gateway API URL |
+| `DATABASE_PATH` | `./predictous.db` | SQLite database path |
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check with budget status |
+| `/agents` | GET | List available agents |
+| `/predict/champion` | POST | Top agent prediction |
+| `/predict/council` | POST | Top 3 agents averaged |
+| `/predict/selected/{miner_uid}` | POST | Specific agent by UID |
+
+### Request Format
+
+```json
+{
+  "question": "Will BTC reach 100k by end of 2026?",
+  "resolution_criteria": "BTC price on Coinbase",
+  "resolution_date": "2026-12-31",
+  "categories": ["crypto"]
+}
+```
+
+### Response Format
+
+```json
+{
+  "request_id": "uuid",
+  "status": "success",
+  "prediction": 0.72,
+  "agent_predictions": [...],
+  "failures": [],
+  "total_cost": 0.019,
+  "error": null
+}
+```
+
+### Error Responses
+
+| Status | Description |
+|--------|-------------|
+| 429 | Rate limit exceeded |
+| 503 | Daily budget exceeded |

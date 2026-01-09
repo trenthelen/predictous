@@ -99,17 +99,20 @@ class Predictor:
                 error_type=sandbox_result.error_type,
             )
 
-    def predict_champion(self, request: PredictionRequest) -> PredictionResult:
+    def predict_champion(
+        self, request: PredictionRequest, request_id: str | None = None
+    ) -> PredictionResult:
         """
         Get prediction from the top-ranked agent.
 
         Args:
             request: The prediction request
+            request_id: Optional request ID for correlation
 
         Returns:
             PredictionResult with single agent's prediction
         """
-        logger.info("Running champion prediction")
+        logger.info(f"Running champion prediction (request_id={request_id})")
 
         try:
             uid, hotkey = self._collector.get_miner_by_rank(0)
@@ -138,7 +141,9 @@ class Predictor:
                 total_cost=0.0,
             )
 
-    def predict_council(self, request: PredictionRequest) -> PredictionResult:
+    def predict_council(
+        self, request: PredictionRequest, request_id: str | None = None
+    ) -> PredictionResult:
         """
         Get predictions from top 3 agents and average them.
 
@@ -146,11 +151,12 @@ class Predictor:
 
         Args:
             request: The prediction request
+            request_id: Optional request ID for correlation
 
         Returns:
             PredictionResult with averaged prediction from successful agents
         """
-        logger.info("Running council prediction (top 3 agents)")
+        logger.info(f"Running council prediction (top 3 agents, request_id={request_id})")
 
         # Fetch agent info for top 3 (sequential, fast)
         agents: list[tuple[int, int, str]] = []  # (rank, uid, hotkey)
@@ -222,18 +228,21 @@ class Predictor:
             total_cost=total_cost,
         )
 
-    def predict_selected(self, request: PredictionRequest, miner_uid: int) -> PredictionResult:
+    def predict_selected(
+        self, request: PredictionRequest, miner_uid: int, request_id: str | None = None
+    ) -> PredictionResult:
         """
         Get prediction from a specific agent by miner UID.
 
         Args:
             request: The prediction request
             miner_uid: The UID of the miner whose agent to run
+            request_id: Optional request ID for correlation
 
         Returns:
             PredictionResult with the selected agent's prediction
         """
-        logger.info(f"Running selected prediction for miner {miner_uid}")
+        logger.info(f"Running selected prediction for miner {miner_uid} (request_id={request_id})")
 
         # Look up miner by UID
         miner_result = self._collector.get_miner_by_uid(miner_uid)
