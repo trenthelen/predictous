@@ -9,6 +9,7 @@ a cost-tracking proxy that enforces budget limits.
 import json
 import logging
 import shutil
+import time
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -246,6 +247,8 @@ class SandboxManager:
         container = None
         result = SandboxResult(status="success", logs="")
 
+        start_time = time.monotonic()
+
         try:
             container = self.docker_client.containers.run(
                 image=SANDBOX_IMAGE_NAME,
@@ -271,6 +274,10 @@ class SandboxManager:
                 detach=True,
             )
 
+            container_start_time = time.monotonic()
+            startup_duration = container_start_time - start_time
+            logger.info(f"Container {sandbox_id} started in {startup_duration:.2f}s")
+
             # Wait for container to finish
             try:
                 container.wait(timeout=timeout)
@@ -281,13 +288,17 @@ class SandboxManager:
                         container.kill()
                     except Exception:
                         pass
+                    elapsed = time.monotonic() - start_time
                     result.logs = self._get_container_logs(container)
                     result.status = "error"
-                    result.error = f"Timeout exceeded ({timeout}s)"
+                    result.error = f"Timeout exceeded ({timeout}s, actual elapsed: {elapsed:.1f}s)"
                     result.error_type = SandboxErrorType.TIMEOUT
                     return result
                 else:
                     raise  # Re-raise non-timeout exceptions
+
+            elapsed = time.monotonic() - start_time
+            logger.info(f"Container {sandbox_id} finished in {elapsed:.2f}s (timeout was {timeout}s)")
 
             # Collect logs
             result.logs = self._get_container_logs(container)

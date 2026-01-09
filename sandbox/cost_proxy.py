@@ -233,9 +233,15 @@ class CostProxyHandler(BaseHTTPRequestHandler):
             if response.content:
                 self.wfile.write(response.content)
 
+        except BrokenPipeError:
+            # Client closed connection before we could send response - this is fine
+            logger.debug(f"[COST-PROXY] Client closed connection for {method} {self.path}")
         except Exception as e:
             logger.error(f"[COST-PROXY] Error forwarding {method} {self.path}: {e}")
-            self._send_error(500, f"Proxy error: {e}")
+            try:
+                self._send_error(500, f"Proxy error: {e}")
+            except BrokenPipeError:
+                pass  # Client already gone, nothing to do
 
     def _send_budget_exceeded(self, run_id: str, service: str, status: dict):
         """Send 402 Payment Required response."""
