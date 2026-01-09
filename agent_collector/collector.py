@@ -62,6 +62,22 @@ class AgentCollector:
         entry = leaderboard[rank]
         return entry.miner_uid, entry.miner_hotkey
 
+    def get_miner_by_uid(self, uid: int) -> tuple[int, str] | None:
+        """Get miner (uid, hotkey) by UID. Returns None if not found."""
+        leaderboard = self.get_leaderboard()
+        for entry in leaderboard:
+            if entry.miner_uid == uid:
+                return entry.miner_uid, entry.miner_hotkey
+        return None
+
+    def get_rank_by_uid(self, uid: int) -> int | None:
+        """Get leaderboard rank (0-indexed) for a miner UID. Returns None if not found."""
+        leaderboard = self.get_leaderboard()
+        for rank, entry in enumerate(leaderboard):
+            if entry.miner_uid == uid:
+                return rank
+        return None
+
     def get_miner_agents(self, miner_uid: int, miner_hotkey: str) -> list[MinerAgentEntry]:
         """Get visible agents for a miner, sorted newest first. Uses cache if valid."""
         cache_key = (miner_uid, miner_hotkey)

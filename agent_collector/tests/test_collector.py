@@ -123,6 +123,51 @@ class TestGetMinerByRank:
             collector.get_miner_by_rank(5)
 
 
+class TestGetMinerByUid:
+    def test_returns_miner_when_found(self, mock_client, collector):
+        mock_client.get_leaderboard.return_value = [
+            make_leaderboard_entry(10, "key10"),
+            make_leaderboard_entry(20, "key20"),
+            make_leaderboard_entry(30, "key30"),
+        ]
+
+        result = collector.get_miner_by_uid(20)
+
+        assert result == (20, "key20")
+
+    def test_returns_none_when_not_found(self, mock_client, collector):
+        mock_client.get_leaderboard.return_value = [
+            make_leaderboard_entry(10, "key10"),
+            make_leaderboard_entry(20, "key20"),
+        ]
+
+        result = collector.get_miner_by_uid(999)
+
+        assert result is None
+
+
+class TestGetRankByUid:
+    def test_returns_rank_when_found(self, mock_client, collector):
+        mock_client.get_leaderboard.return_value = [
+            make_leaderboard_entry(10, "key10"),
+            make_leaderboard_entry(20, "key20"),
+            make_leaderboard_entry(30, "key30"),
+        ]
+
+        assert collector.get_rank_by_uid(10) == 0
+        assert collector.get_rank_by_uid(20) == 1
+        assert collector.get_rank_by_uid(30) == 2
+
+    def test_returns_none_when_not_found(self, mock_client, collector):
+        mock_client.get_leaderboard.return_value = [
+            make_leaderboard_entry(10, "key10"),
+        ]
+
+        result = collector.get_rank_by_uid(999)
+
+        assert result is None
+
+
 class TestGetMinerAgents:
     def test_filters_non_activated(self, mock_client, collector):
         mock_client.get_miner_agents.return_value = [

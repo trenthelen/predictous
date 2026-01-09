@@ -1,3 +1,13 @@
+# Predictous
+
+This is an open-source and free project, that aims to deliver a fully functional
+forecasting system build on Bittensor Sunbet 6: Numinous.
+
+The main modules:
+1. Agent Collector - integrates with the Numinous API
+2. Agent Runner (Sandbox) - safe environment to run agents locally
+3. Predictor - orchestrates agent fetching and execution
+
 ## Agent Collector
 
 Fetches agent code from Numinous API with caching.
@@ -89,4 +99,57 @@ result.cost        # total cost in USD
 result.error       # error message if failed
 result.error_type  # TIMEOUT | CONTAINER_ERROR | INVALID_OUTPUT | AGENT_ERROR | BUDGET_EXCEEDED
 result.logs        # container stdout
+```
+
+---
+
+## Predictor
+
+Orchestrates agent fetching and execution to produce predictions. Three modes available.
+
+### Usage
+
+```python
+from predictor import Predictor, PredictionRequest
+from agent_collector import AgentCollector
+from sandbox import SandboxManager
+
+collector = AgentCollector()
+with SandboxManager(gateway_url="http://localhost:8000") as manager:
+    predictor = Predictor(collector, manager)
+
+    request = PredictionRequest(
+        question="Will X happen?",
+        resolution_criteria="X is true if...",
+        resolution_date="2026-01-31",  # optional
+        categories=["topic1"],          # optional
+    )
+
+    # Champion mode: top agent only
+    result = predictor.predict_champion(request)
+
+    # Council mode: top 3 agents, averaged (runs in parallel)
+    result = predictor.predict_council(request)
+
+    # Selected mode: specific miner by UID
+    result = predictor.predict_selected(request, miner_uid=123)
+```
+
+### Modes
+
+| Mode | Agents | Aggregation | Failure Threshold |
+|------|--------|-------------|-------------------|
+| Champion | Top 1 | None | Must succeed |
+| Council | Top 3 | Average | At least 2 must succeed |
+| Selected | By UID | None | Must succeed |
+
+### Result
+
+```python
+result.status             # "success" or "error"
+result.prediction         # aggregated prediction (0.0-1.0)
+result.agent_predictions  # list of AgentPrediction
+result.failures           # list of AgentFailure
+result.total_cost         # total cost in USD
+result.error              # error message if failed
 ```
