@@ -16,6 +16,11 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('predict');
   const [detailId, setDetailId] = useState<string | null>(null);
 
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setDetailId(null);
+  };
+
   // Public shareable view - standalone, no app chrome
   const sharedId = getSharedPredictionId();
   if (sharedId) {
@@ -25,7 +30,7 @@ function App() {
   // Internal detail view from history
   if (detailId) {
     return (
-      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+      <Layout activeTab={activeTab} onTabChange={handleTabChange}>
         <PredictionDetail
           requestId={detailId}
           onBack={() => setDetailId(null)}
@@ -35,7 +40,7 @@ function App() {
   }
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+    <Layout activeTab={activeTab} onTabChange={handleTabChange}>
       {activeTab === 'predict' && <PredictionForm />}
       {activeTab === 'batch' && (
         <ComingSoon
