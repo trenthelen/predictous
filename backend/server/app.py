@@ -20,6 +20,7 @@ from predictor import Predictor, PredictionLogger
 from predictor.models import PredictionRequest, PredictionResult
 from sandbox import SandboxManager
 from sandbox.models import SandboxErrorType
+from server.jobs import jobs, JobStatus
 
 load_dotenv()
 
@@ -163,6 +164,21 @@ class ErrorResponse(BaseModel):
     error_code: str
 
 
+class JobResponse(BaseModel):
+    """Response for async prediction submission."""
+
+    job_id: str
+
+
+class JobStatusResponse(BaseModel):
+    """Response for job status check."""
+
+    job_id: str
+    status: str
+    result: Optional[PredictResponse] = None
+    error: Optional[str] = None
+
+
 # Common error responses for predict endpoints
 PREDICT_ERROR_RESPONSES = {
     429: {
@@ -218,24 +234,13 @@ def check_budget() -> None:
 MODE_UNITS = {"champion": 1, "council": 3, "selected": 1}
 
 
-def run_prediction(
-    request: Request,
+def _execute_prediction(
+    request_id: str,
     prediction_request: PredictionRequest,
     mode: str,
     miner_uid: int | None = None,
 ) -> PredictResponse:
-    """Common logic for all prediction endpoints."""
-    request_id = str(uuid4())
-    ip = get_client_ip(request)
-    units = MODE_UNITS[mode]
-
-    # Check limits
-    check_rate_limit(ip, units)
-    check_budget()
-
-    # Record request
-    db.record_request(request_id, ip, units)
-
+    """Execute prediction synchronously (runs in background thread)."""
     # Run prediction
     if mode == "champion":
         result = predictor.predict_champion(prediction_request, request_id)
@@ -245,17 +250,6 @@ def run_prediction(
         result = predictor.predict_selected(prediction_request, miner_uid, request_id)
     else:
         raise ValueError(f"Unknown mode: {mode}")
-
-    # Check for queue full error
-    for failure in result.failures:
-        if failure.error_type == SandboxErrorType.QUEUE_FULL:
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "message": "Server busy. Too many concurrent requests. Please try again later.",
-                    "error_code": "queue_full",
-                },
-            )
 
     # Record cost
     if result.total_cost > 0:
@@ -270,6 +264,38 @@ def run_prediction(
         total_cost=result.total_cost,
         error=result.error,
     )
+
+
+def start_prediction_job(
+    request: Request,
+    prediction_request: PredictionRequest,
+    mode: str,
+    miner_uid: int | None = None,
+) -> JobResponse:
+    """Start prediction as background job, return job_id immediately."""
+    request_id = str(uuid4())
+    ip = get_client_ip(request)
+    units = MODE_UNITS[mode]
+
+    # Check limits before starting job
+    check_rate_limit(ip, units)
+    check_budget()
+
+    # Record request
+    db.record_request(request_id, ip, units)
+
+    # Create job and run in background
+    job = jobs.create()
+    jobs.run_in_background(
+        job,
+        _execute_prediction,
+        request_id,
+        prediction_request,
+        mode,
+        miner_uid,
+    )
+
+    return JobResponse(job_id=job.id)
 
 
 # Endpoints
@@ -306,24 +332,39 @@ async def list_agents():
     return AgentsResponse(agents=agents)
 
 
-@app.post("/predict/champion", response_model=PredictResponse, responses=PREDICT_ERROR_RESPONSES)
+@app.post("/predict/champion", response_model=JobResponse, responses=PREDICT_ERROR_RESPONSES)
 async def predict_champion(request: Request, prediction_request: PredictionRequest):
-    """Get prediction from top-ranked agent."""
-    return run_prediction(request, prediction_request, "champion")
+    """Start prediction from top-ranked agent. Returns job_id to poll for result."""
+    return start_prediction_job(request, prediction_request, "champion")
 
 
-@app.post("/predict/council", response_model=PredictResponse, responses=PREDICT_ERROR_RESPONSES)
+@app.post("/predict/council", response_model=JobResponse, responses=PREDICT_ERROR_RESPONSES)
 async def predict_council(request: Request, prediction_request: PredictionRequest):
-    """Get averaged prediction from top 3 agents."""
-    return run_prediction(request, prediction_request, "council")
+    """Start averaged prediction from top 3 agents. Returns job_id to poll for result."""
+    return start_prediction_job(request, prediction_request, "council")
 
 
-@app.post("/predict/selected/{miner_uid}", response_model=PredictResponse, responses=PREDICT_ERROR_RESPONSES)
+@app.post("/predict/selected/{miner_uid}", response_model=JobResponse, responses=PREDICT_ERROR_RESPONSES)
 async def predict_selected(
     request: Request, miner_uid: int, prediction_request: PredictionRequest
 ):
-    """Get prediction from a specific agent."""
-    return run_prediction(request, prediction_request, "selected", miner_uid)
+    """Start prediction from a specific agent. Returns job_id to poll for result."""
+    return start_prediction_job(request, prediction_request, "selected", miner_uid)
+
+
+@app.get("/predict/status/{job_id}", response_model=JobStatusResponse)
+async def predict_status(job_id: str):
+    """Check status of a prediction job."""
+    job = jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return JobStatusResponse(
+        job_id=job.id,
+        status=job.status.value,
+        result=job.result if job.status == JobStatus.COMPLETED else None,
+        error=job.error if job.status == JobStatus.FAILED else None,
+    )
 
 
 if __name__ == "__main__":

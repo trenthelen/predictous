@@ -2,9 +2,10 @@ import type {
   HealthResponse,
   AgentsResponse,
   PredictionRequest,
-  PredictResponse,
   PredictionMode,
   ErrorCode,
+  JobResponse,
+  JobStatusResponse,
 } from '../types/api';
 
 // Use /api proxy in dev (handles long timeouts), direct URL in production
@@ -66,11 +67,11 @@ export async function fetchAgents(): Promise<AgentsResponse> {
   return handleResponse<AgentsResponse>(response);
 }
 
-export async function predict(
+export async function submitPrediction(
   mode: PredictionMode,
   request: PredictionRequest,
   minerUid?: number
-): Promise<PredictResponse> {
+): Promise<JobResponse> {
   const url =
     mode === 'selected'
       ? `${API_BASE}/predict/selected/${minerUid}`
@@ -82,5 +83,10 @@ export async function predict(
     body: JSON.stringify(request),
   });
 
-  return handleResponse<PredictResponse>(response);
+  return handleResponse<JobResponse>(response);
+}
+
+export async function fetchJobStatus(jobId: string): Promise<JobStatusResponse> {
+  const response = await fetch(`${API_BASE}/predict/status/${jobId}`);
+  return handleResponse<JobStatusResponse>(response);
 }
