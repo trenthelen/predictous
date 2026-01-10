@@ -13,33 +13,30 @@ export function Reasoning({ predictions }: ReasoningProps) {
   if (withReasoning.length === 0) return null;
 
   return (
-    <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+    <div>
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between text-left text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+        className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-cream-200/50 dark:hover:bg-teal-800/50"
       >
-        <span>Reasoning</span>
-        <svg
-          className={`h-5 w-5 transition-transform ${expanded ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <span className="font-mono text-xs text-teal-600/60 dark:text-cream-300/60">
+          REASONING
+        </span>
+        <span className="font-mono text-xs text-teal-600/60 dark:text-cream-300/60">
+          {expanded ? '[-]' : '[+]'}
+        </span>
       </button>
 
       {expanded && (
-        <div className="mt-3 space-y-4">
+        <div className="space-y-4 border-t border-cream-300 p-6 dark:border-teal-700">
           {withReasoning.map((pred) => (
-            <div key={pred.miner_uid} className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+            <div key={pred.miner_uid}>
               {withReasoning.length > 1 && (
-                <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Rank {pred.rank + 1} (UID {pred.miner_uid})
+                <div className="mb-2 font-mono text-xs text-teal-600/60 dark:text-cream-300/60">
+                  RANK {pred.rank + 1} / UID {pred.miner_uid}
                 </div>
               )}
-              <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-teal-700 dark:text-cream-200">
                 {pred.reasoning}
               </p>
             </div>

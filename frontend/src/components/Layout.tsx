@@ -9,22 +9,34 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Header activeTab={activeTab} onTabChange={onTabChange} />
-      <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
-      <footer className="border-t border-gray-200 bg-white py-6 dark:border-gray-800 dark:bg-gray-900">
-        <div className="mx-auto max-w-4xl px-4 text-center text-sm text-gray-500 dark:text-gray-500">
-          Powered by{' '}
-          <a
-            href="https://numinouslabs.io/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary-600 hover:underline dark:text-primary-400"
-          >
-            Numinous
-          </a>
-        </div>
-      </footer>
+    <div className="min-h-screen bg-cream-100 text-teal-800 dark:bg-teal-900 dark:text-cream-200">
+      {/* Grid overlay for visual structure */}
+      <div className="fixed inset-0 pointer-events-none">
+        {/* Vertical lines */}
+        <div className="absolute left-[20%] top-0 bottom-0 w-px bg-cream-300 dark:bg-teal-700 opacity-50" />
+        <div className="absolute right-[20%] top-0 bottom-0 w-px bg-cream-300 dark:bg-teal-700 opacity-50" />
+      </div>
+
+      <div className="relative">
+        <Header activeTab={activeTab} onTabChange={onTabChange} />
+
+        {/* Main content area */}
+        <main className="mx-auto max-w-4xl px-6 py-12">
+          {children}
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t border-cream-300 dark:border-teal-700">
+          <div className="mx-auto max-w-4xl px-6 py-6 flex justify-between items-center">
+            <span className="font-mono text-xs text-teal-600/60 dark:text-cream-300/60">
+              POWERED BY NUMINOUS
+            </span>
+            <span className="font-mono text-xs text-teal-600/60 dark:text-cream-300/60">
+              BUILDING THE FUTURE OF FORECASTING
+            </span>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

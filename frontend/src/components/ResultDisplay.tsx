@@ -12,40 +12,53 @@ interface ResultDisplayProps {
 export function ResultDisplay({ result, mode }: ResultDisplayProps) {
   if (result.status === 'error' && result.prediction === null) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
-        <p className="text-red-800 dark:text-red-200">{result.error || 'Prediction failed'}</p>
+      <div className="border border-muted-red/30 bg-muted-red/5 p-6 text-center">
+        <p className="text-sm text-teal-800 dark:text-cream-200">
+          {result.error || 'Prediction failed'}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+    <div className="border border-cream-300 dark:border-teal-700">
       {/* Main probability display */}
       {result.prediction !== null && (
-        <div className="text-center">
-          <div className="text-6xl font-bold text-primary-600 dark:text-primary-400">
+        <div className="border-b border-cream-300 p-8 text-center dark:border-teal-700">
+          <div className="font-mono text-xs text-teal-600/60 dark:text-cream-300/60">
+            PROBABILITY
+          </div>
+          <div className="mt-2 font-mono text-5xl tracking-tight text-teal-800 dark:text-cream-100">
             {formatPercentage(result.prediction)}
           </div>
-          <div className="mt-2 text-gray-600 dark:text-gray-400">Probability</div>
         </div>
       )}
 
       {/* Council mode breakdown */}
       {mode === 'council' && result.agent_predictions.length > 0 && (
-        <AgentBreakdown predictions={result.agent_predictions} />
+        <div className="border-b border-cream-300 p-6 dark:border-teal-700">
+          <AgentBreakdown predictions={result.agent_predictions} />
+        </div>
       )}
 
       {/* Reasoning (foldable) */}
       {result.agent_predictions.length > 0 && (
-        <Reasoning predictions={result.agent_predictions} />
+        <div className="border-b border-cream-300 dark:border-teal-700">
+          <Reasoning predictions={result.agent_predictions} />
+        </div>
       )}
 
       {/* Failures */}
-      {result.failures.length > 0 && <FailureDisplay failures={result.failures} />}
+      {result.failures.length > 0 && (
+        <div className="border-b border-cream-300 p-6 dark:border-teal-700">
+          <FailureDisplay failures={result.failures} />
+        </div>
+      )}
 
       {/* Cost info */}
-      <div className="border-t border-gray-200 pt-4 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-500">
-        Total cost: {formatCost(result.total_cost)}
+      <div className="flex items-center justify-between p-4 font-mono text-xs">
+        <span className="text-teal-600/60 dark:text-cream-300/60">COST</span>
+        <span className="text-teal-800 dark:text-cream-100">{formatCost(result.total_cost)}</span>
       </div>
     </div>
   );

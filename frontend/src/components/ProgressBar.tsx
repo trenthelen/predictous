@@ -11,16 +11,19 @@ export function ProgressBar({ elapsed }: ProgressBarProps) {
   const remaining = Math.max(ESTIMATED_SECONDS - elapsed, 0);
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-        <span>Processing prediction...</span>
-        <span>~{formatTime(remaining)} remaining</span>
+    <div className="border border-cream-300 p-6 dark:border-teal-700">
+      <div className="flex items-center justify-between font-mono text-xs">
+        <span className="text-teal-600/60 dark:text-cream-300/60">PROCESSING</span>
+        <span className="text-teal-800 dark:text-cream-100">~{formatTime(remaining)}</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+      <div className="mt-4 h-1 bg-cream-300 dark:bg-teal-700">
         <div
-          className="h-full bg-primary-500 transition-all duration-1000"
+          className="h-full bg-teal-600 transition-all duration-1000 dark:bg-cream-200"
           style={{ width: `${percentage}%` }}
         />
+      </div>
+      <div className="mt-3 font-mono text-xs text-teal-600/40 dark:text-cream-300/40">
+        ELAPSED: {formatTime(elapsed)}
       </div>
     </div>
   );

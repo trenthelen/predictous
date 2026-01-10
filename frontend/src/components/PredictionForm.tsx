@@ -50,15 +50,22 @@ export function PredictionForm() {
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="border-b border-cream-300 pb-6 dark:border-teal-700">
+        <h1 className="font-mono text-2xl tracking-tight text-teal-800 dark:text-cream-100">
+          FORECAST
+        </h1>
+        <p className="mt-2 text-sm text-teal-600/60 dark:text-cream-300/60">
+          Submit a question for AI-powered probability prediction
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* Question */}
-        <div>
-          <label
-            htmlFor="question"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Question <span className="text-red-500">*</span>
+        <div className="space-y-3">
+          <label htmlFor="question" className="heading-caps text-teal-600/60 dark:text-cream-300/60">
+            Question <span className="text-muted-red">*</span>
           </label>
           <input
             type="text"
@@ -67,17 +74,14 @@ export function PredictionForm() {
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Will Bitcoin reach $100,000 by end of 2025?"
             disabled={loading}
-            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+            className="w-full border border-cream-300 bg-transparent px-4 py-3 text-teal-800 placeholder:text-teal-600/40 dark:border-teal-700 dark:text-cream-100 dark:placeholder:text-cream-300/40"
           />
         </div>
 
         {/* Resolution Criteria */}
-        <div>
-          <label
-            htmlFor="criteria"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Resolution Criteria <span className="text-red-500">*</span>
+        <div className="space-y-3">
+          <label htmlFor="criteria" className="heading-caps text-teal-600/60 dark:text-cream-300/60">
+            Resolution Criteria <span className="text-muted-red">*</span>
           </label>
           <textarea
             id="criteria"
@@ -86,17 +90,14 @@ export function PredictionForm() {
             placeholder="This question resolves YES if Bitcoin's price reaches or exceeds $100,000 USD on any major exchange before December 31, 2025."
             rows={3}
             disabled={loading}
-            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+            className="w-full border border-cream-300 bg-transparent px-4 py-3 text-teal-800 placeholder:text-teal-600/40 dark:border-teal-700 dark:text-cream-100 dark:placeholder:text-cream-300/40"
           />
         </div>
 
         {/* Resolution Date */}
-        <div>
-          <label
-            htmlFor="date"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Resolution Date <span className="font-normal text-gray-500">(optional)</span>
+        <div className="space-y-3">
+          <label htmlFor="date" className="heading-caps text-teal-600/60 dark:text-cream-300/60">
+            Resolution Date
           </label>
           <input
             type="datetime-local"
@@ -104,7 +105,7 @@ export function PredictionForm() {
             value={formatDateForInput(resolutionDate)}
             onChange={(e) => setResolutionDate(formatDateFromInput(e.target.value))}
             disabled={loading}
-            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-primary-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            className="w-full border border-cream-300 bg-transparent px-4 py-3 text-teal-800 dark:border-teal-700 dark:text-cream-100"
           />
         </div>
 
@@ -125,9 +126,9 @@ export function PredictionForm() {
         <button
           type="submit"
           disabled={loading || !isValid}
-          className="w-full rounded-lg bg-primary-600 px-6 py-3 font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn btn-primary w-full disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {loading ? 'Processing...' : 'Get Prediction'}
+          {loading ? 'PROCESSING...' : 'GET PREDICTION'}
         </button>
       </form>
 
@@ -139,13 +140,10 @@ export function PredictionForm() {
 
       {/* Result */}
       {result && !error && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <ResultDisplay result={result} mode={mode} />
-          <button
-            onClick={handleReset}
-            className="w-full rounded-lg border border-gray-300 bg-white px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            New Prediction
+          <button onClick={handleReset} className="btn btn-secondary w-full">
+            NEW PREDICTION
           </button>
         </div>
       )}

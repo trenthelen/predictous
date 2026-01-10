@@ -25,9 +25,9 @@ export function CategorySelect({ value, onChange }: CategorySelectProps) {
   };
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Categories <span className="font-normal text-gray-500">(optional)</span>
+    <div className="space-y-3">
+      <label className="heading-caps text-teal-600/60 dark:text-cream-300/60">
+        Categories
       </label>
       <div className="flex flex-wrap gap-2">
         {CATEGORIES.map((category) => (
@@ -35,13 +35,13 @@ export function CategorySelect({ value, onChange }: CategorySelectProps) {
             key={category}
             type="button"
             onClick={() => toggleCategory(category)}
-            className={`rounded-full px-3 py-1 text-sm transition-colors ${
+            className={`border px-3 py-1.5 font-mono text-xs transition-colors ${
               value.includes(category)
-                ? 'bg-primary-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                ? 'border-teal-600 bg-teal-600 text-cream-100 dark:border-cream-200 dark:bg-cream-200 dark:text-teal-900'
+                : 'border-cream-300 text-teal-600/80 hover:border-teal-600 hover:text-teal-800 dark:border-teal-700 dark:text-cream-300/80 dark:hover:border-cream-300 dark:hover:text-cream-100'
             }`}
           >
-            {category}
+            {category.toUpperCase()}
           </button>
         ))}
       </div>

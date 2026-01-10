@@ -1,27 +1,28 @@
 import { useTheme, type Theme } from '../hooks/useTheme';
 
-const THEMES: { value: Theme; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
+const THEMES: { value: Theme; icon: string }[] = [
+  { value: 'light', icon: '/' },
+  { value: 'dark', icon: '\\' },
+  { value: 'system', icon: 'A' },
 ];
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
-      {THEMES.map(({ value, label }) => (
+    <div className="flex items-center border border-cream-300 dark:border-teal-700">
+      {THEMES.map(({ value, icon }) => (
         <button
           key={value}
           onClick={() => setTheme(value)}
-          className={`rounded-md px-3 py-1 text-sm transition-colors ${
+          className={`px-2 py-1 font-mono text-xs transition-colors ${
             theme === value
-              ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
-              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+              ? 'bg-teal-600 text-cream-100 dark:bg-cream-200 dark:text-teal-900'
+              : 'text-teal-600/60 hover:text-teal-800 dark:text-cream-300/60 dark:hover:text-cream-100'
           }`}
+          title={value.charAt(0).toUpperCase() + value.slice(1)}
         >
-          {label}
+          {icon}
         </button>
       ))}
     </div>

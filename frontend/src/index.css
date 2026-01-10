@@ -1,31 +1,136 @@
+/* Import fonts first */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+
 @import "tailwindcss";
 
 @theme {
-  /* Custom theme colors */
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* Numinous-inspired color palette */
+  --color-cream-50: #faf9f7;
+  --color-cream-100: #f5f3ef;
+  --color-cream-200: #ebe7e0;
+  --color-cream-300: #ddd8ce;
+
+  --color-teal-600: #2d4a47;
+  --color-teal-700: #243d3a;
+  --color-teal-800: #1a2e2c;
+  --color-teal-900: #111f1e;
+
+  --color-accent: #2d4a47;
+  --color-accent-hover: #243d3a;
+
+  /* Muted colors for states */
+  --color-muted-red: #8b4b4b;
+  --color-muted-amber: #8b7355;
+  --color-muted-green: #4b6b5b;
 }
 
 /* Base styles */
 html {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark mode class-based switching */
-html.dark {
-  color-scheme: dark;
+body {
+  background-color: var(--color-cream-100);
+  color: var(--color-teal-800);
 }
 
-html.light {
-  color-scheme: light;
+/* Dark mode */
+html.dark body {
+  background-color: var(--color-teal-900);
+  color: var(--color-cream-200);
+}
+
+/* Monospace utility */
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Grid lines - the signature Numinous look */
+.grid-line {
+  border-color: var(--color-cream-300);
+}
+
+html.dark .grid-line {
+  border-color: var(--color-teal-700);
+}
+
+/* Subtle input styling */
+input, textarea, select {
+  background-color: transparent;
+  border: 1px solid var(--color-cream-300);
+  transition: border-color 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  border-color: var(--color-teal-700);
+  color: var(--color-cream-200);
+}
+
+html.dark input:focus,
+html.dark textarea:focus,
+html.dark select:focus {
+  border-color: var(--color-cream-300);
+}
+
+/* Button base */
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid currentColor;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  color: var(--color-cream-100);
+  border-color: var(--color-accent);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-accent);
+  color: var(--color-cream-100);
+}
+
+/* Heading styles */
+.heading-caps {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.75rem;
+}
+
+/* Code/data display */
+.data-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-cream-100);
 }

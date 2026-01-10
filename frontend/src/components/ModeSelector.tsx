@@ -1,9 +1,9 @@
 import type { PredictionMode, AgentInfo } from '../types/api';
 
-const MODES: { value: PredictionMode; label: string; description: string }[] = [
-  { value: 'champion', label: 'Champion', description: 'Top-ranked agent' },
-  { value: 'council', label: 'Council', description: 'Average of top 3' },
-  { value: 'selected', label: 'Selected', description: 'Choose an agent' },
+const MODES: { value: PredictionMode; label: string; desc: string }[] = [
+  { value: 'champion', label: 'CHAMPION', desc: 'Top agent' },
+  { value: 'council', label: 'COUNCIL', desc: 'Top 3 averaged' },
+  { value: 'selected', label: 'SELECTED', desc: 'Choose agent' },
 ];
 
 interface ModeSelectorProps {
@@ -24,44 +24,47 @@ export function ModeSelector({
   agentsLoading,
 }: ModeSelectorProps) {
   return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Prediction Mode
+    <div className="space-y-4">
+      <label className="heading-caps text-teal-600/60 dark:text-cream-300/60">
+        Mode
       </label>
-      <div className="flex flex-wrap gap-2">
-        {MODES.map(({ value, label, description }) => (
+
+      <div className="grid grid-cols-3 gap-3">
+        {MODES.map(({ value, label, desc }) => (
           <button
             key={value}
             type="button"
             onClick={() => onModeChange(value)}
-            className={`rounded-lg border px-4 py-2 text-left transition-colors ${
+            className={`border p-4 text-left transition-colors ${
               mode === value
-                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/20 dark:text-primary-300'
-                : 'border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800'
+                ? 'border-teal-600 dark:border-cream-200'
+                : 'border-cream-300 hover:border-teal-600/50 dark:border-teal-700 dark:hover:border-cream-300/50'
             }`}
           >
-            <div className="font-medium">{label}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">{description}</div>
+            <div className="font-mono text-xs tracking-wider text-teal-800 dark:text-cream-100">
+              {label}
+            </div>
+            <div className="mt-1 text-xs text-teal-600/60 dark:text-cream-300/60">
+              {desc}
+            </div>
           </button>
         ))}
       </div>
 
       {mode === 'selected' && (
-        <div className="mt-3">
-          <select
-            value={selectedMinerUid ?? ''}
-            onChange={(e) => onMinerUidChange(e.target.value ? Number(e.target.value) : null)}
-            disabled={agentsLoading}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-primary-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-          >
-            <option value="">Select an agent...</option>
-            {agents.map((agent) => (
-              <option key={agent.miner_uid} value={agent.miner_uid}>
-                Rank {agent.rank + 1}: UID {agent.miner_uid}
-              </option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={selectedMinerUid ?? ''}
+          onChange={(e) => onMinerUidChange(e.target.value ? Number(e.target.value) : null)}
+          disabled={agentsLoading}
+          className="w-full border border-cream-300 bg-transparent px-4 py-3 font-mono text-sm text-teal-800 dark:border-teal-700 dark:text-cream-100"
+        >
+          <option value="" className="bg-cream-100 dark:bg-teal-900">Select agent...</option>
+          {agents.map((agent) => (
+            <option key={agent.miner_uid} value={agent.miner_uid} className="bg-cream-100 dark:bg-teal-900">
+              Rank {agent.rank + 1}: UID {agent.miner_uid}
+            </option>
+          ))}
+        </select>
       )}
     </div>
   );

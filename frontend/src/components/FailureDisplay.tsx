@@ -9,26 +9,26 @@ export function FailureDisplay({ failures }: FailureDisplayProps) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-amber-700 dark:text-amber-400">
-        Agent Failures ({failures.length})
-      </h3>
+      <div className="font-mono text-xs text-muted-amber">
+        FAILURES ({failures.length})
+      </div>
       <div className="space-y-2">
         {failures.map((failure, index) => (
           <div
             key={`${failure.miner_uid}-${index}`}
-            className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-900/20"
+            className="border border-muted-amber/30 bg-muted-amber/5 px-4 py-3"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                Rank {failure.rank + 1} (UID {failure.miner_uid})
+            <div className="flex items-center justify-between font-mono text-xs">
+              <span className="text-teal-800 dark:text-cream-100">
+                RANK {failure.rank + 1} / UID {failure.miner_uid}
               </span>
               {failure.error_type && (
-                <span className="rounded bg-amber-200 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-800 dark:text-amber-200">
-                  {failure.error_type}
-                </span>
+                <span className="text-muted-amber">{failure.error_type}</span>
               )}
             </div>
-            <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">{failure.error}</p>
+            <p className="mt-2 text-xs text-teal-600/80 dark:text-cream-300/80">
+              {failure.error}
+            </p>
           </div>
         ))}
       </div>
