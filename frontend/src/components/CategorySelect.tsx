@@ -1,3 +1,5 @@
+import { Tooltip } from './Tooltip';
+
 const CATEGORIES = [
   'Sports',
   'Games',
@@ -28,6 +30,7 @@ export function CategorySelect({ value, onChange }: CategorySelectProps) {
     <div className="space-y-3">
       <label className="heading-caps text-teal-600/60 dark:text-cream-300/60">
         Categories
+        <Tooltip content="Optional. Select relevant categories to help some agents improve their precision and efficiency." />
       </label>
       <div className="flex flex-wrap gap-2">
         {CATEGORIES.map((category) => (

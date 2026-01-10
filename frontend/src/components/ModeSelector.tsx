@@ -1,4 +1,5 @@
 import type { PredictionMode, AgentInfo } from '../types/api';
+import { Tooltip } from './Tooltip';
 
 const MODES: { value: PredictionMode; label: string; desc: string }[] = [
   { value: 'champion', label: 'CHAMPION', desc: 'Top agent' },
@@ -27,6 +28,7 @@ export function ModeSelector({
     <div className="space-y-4">
       <label className="heading-caps text-teal-600/60 dark:text-cream-300/60">
         Mode
+        <Tooltip content="Choose which AI agents generate your prediction. Champion uses the top-ranked agent, Council averages the top 3, or select a specific agent." />
       </label>
 
       <div className="grid grid-cols-3 gap-3">

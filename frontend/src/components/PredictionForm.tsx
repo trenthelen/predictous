@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAgents } from '../hooks/useAgents';
 import { usePrediction } from '../hooks/usePrediction';
+import { useHealth } from '../hooks/useHealth';
 import type { PredictionMode } from '../types/api';
 import { getDefaultResolutionDate, formatDateForInput, formatDateFromInput } from '../utils/format';
 import { CategorySelect } from './CategorySelect';
@@ -8,6 +9,7 @@ import { ModeSelector } from './ModeSelector';
 import { LoadingOverlay } from './LoadingOverlay';
 import { ResultDisplay } from './ResultDisplay';
 import { ErrorMessage } from './ErrorMessage';
+import { Tooltip } from './Tooltip';
 
 export function PredictionForm() {
   const [question, setQuestion] = useState('');
@@ -19,6 +21,7 @@ export function PredictionForm() {
 
   const { agents, loading: agentsLoading } = useAgents();
   const { submit, result, loading, error, elapsed, reset } = usePrediction();
+  const { health } = useHealth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -66,6 +69,7 @@ export function PredictionForm() {
         <div className="space-y-3">
           <label htmlFor="question" className="heading-caps text-teal-600/60 dark:text-cream-300/60">
             Question <span className="text-muted-red">*</span>
+            <Tooltip content="Must be a binary yes/no question. Keep it short and specific for best results." />
           </label>
           <input
             type="text"
@@ -82,6 +86,7 @@ export function PredictionForm() {
         <div className="space-y-3">
           <label htmlFor="criteria" className="heading-caps text-teal-600/60 dark:text-cream-300/60">
             Resolution Criteria <span className="text-muted-red">*</span>
+            <Tooltip content="Additional context to remove ambiguity. Specify how the question should be resolved, such as which sources to use or what counts as success." />
           </label>
           <textarea
             id="criteria"
@@ -98,6 +103,7 @@ export function PredictionForm() {
         <div className="space-y-3">
           <label htmlFor="date" className="heading-caps text-teal-600/60 dark:text-cream-300/60">
             Resolution Date
+            <Tooltip content="Optional. The date when this question should be resolved. Most agents do not use this value for their predictions." />
           </label>
           <input
             type="datetime-local"
@@ -123,13 +129,22 @@ export function PredictionForm() {
         />
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading || !isValid}
-          className="btn btn-primary w-full disabled:cursor-not-allowed disabled:opacity-40"
+        <Tooltip
+          block
+          content={
+            health
+              ? `${health.requests_remaining} of ${health.requests_limit} predictions remaining today`
+              : 'Loading quota...'
+          }
         >
-          {loading ? 'PROCESSING...' : 'GET PREDICTION'}
-        </button>
+          <button
+            type="submit"
+            disabled={loading || !isValid}
+            className="btn btn-primary w-full disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {loading ? 'PROCESSING...' : 'GET PREDICTION'}
+          </button>
+        </Tooltip>
       </form>
 
       {/* Loading Overlay */}
