@@ -31,7 +31,7 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-6 md:flex">
-            {(['predict', 'batch', 'history', 'stats'] as const).map((tab) => (
+            {(['predict', 'history', 'batch', 'stats'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => onTabChange(tab)}
@@ -74,7 +74,7 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
         {mobileMenuOpen && (
           <div className="border-t border-cream-200 py-4 dark:border-teal-700 md:hidden">
             <nav className="flex flex-col gap-3">
-              {(['predict', 'batch', 'history', 'stats'] as const).map((tab) => (
+              {(['predict', 'history', 'batch', 'stats'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => handleTabChange(tab)}
