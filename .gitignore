@@ -47,6 +47,9 @@ Thumbs.db
 # Cached agent code
 backend/agents/
 
+# SSL certificates
+nginx/certs/
+
 # Other
 backend/technical_rules.md
 *.db
