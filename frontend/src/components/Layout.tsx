@@ -10,7 +10,7 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-cream-100 text-teal-800 dark:bg-teal-900 dark:text-cream-200">
+    <div className="min-h-screen overflow-x-hidden bg-cream-100 text-teal-800 dark:bg-teal-900 dark:text-cream-200">
       {/* Grid overlay - vertical lines aligned with content container */}
       <div className="pointer-events-none fixed inset-0 flex justify-center">
         <div className="relative w-full max-w-4xl">
@@ -23,13 +23,13 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
         <Header activeTab={activeTab} onTabChange={onTabChange} />
 
         {/* Main content area */}
-        <main className="mx-auto max-w-4xl px-6 py-12">
+        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
           {children}
         </main>
 
         {/* Footer */}
         <footer className="border-t border-cream-300 dark:border-teal-700">
-          <div className="mx-auto max-w-4xl px-6 py-6 flex justify-between items-center">
+          <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
             <span className="font-mono text-xs text-teal-600/60 dark:text-cream-300/60">
               POWERED BY{' '}
               <a
