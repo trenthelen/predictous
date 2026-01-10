@@ -6,7 +6,9 @@ import type {
   ErrorCode,
   JobResponse,
   JobStatusResponse,
+  HistoryResponse,
 } from '../types/api';
+import { getUserId } from '../utils/userId';
 
 // Use /api proxy in dev (handles long timeouts), direct URL in production
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -79,7 +81,10 @@ export async function submitPrediction(
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': getUserId(),
+    },
     body: JSON.stringify(request),
   });
 
@@ -89,4 +94,15 @@ export async function submitPrediction(
 export async function fetchJobStatus(jobId: string): Promise<JobStatusResponse> {
   const response = await fetch(`${API_BASE}/predict/status/${jobId}`);
   return handleResponse<JobStatusResponse>(response);
+}
+
+export async function fetchHistory(limit = 50, offset = 0): Promise<HistoryResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const response = await fetch(`${API_BASE}/history?${params}`, {
+    headers: { 'X-User-Id': getUserId() },
+  });
+  return handleResponse<HistoryResponse>(response);
 }

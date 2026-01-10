@@ -69,3 +69,15 @@ export interface JobStatusResponse {
   result: PredictResponse | null;
   error: string | null;
 }
+
+// History types
+export interface HistoryItem {
+  request_id: string;
+  question: string;
+  prediction: number | null;
+  timestamp: string;
+}
+
+export interface HistoryResponse {
+  items: HistoryItem[];
+}

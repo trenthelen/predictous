@@ -179,6 +179,21 @@ class JobStatusResponse(BaseModel):
     error: Optional[str] = None
 
 
+class HistoryItem(BaseModel):
+    """Single item in prediction history."""
+
+    request_id: str
+    question: str
+    prediction: Optional[float] = None
+    timestamp: str
+
+
+class HistoryResponse(BaseModel):
+    """Response for /history endpoint."""
+
+    items: list[HistoryItem]
+
+
 # Common error responses for predict endpoints
 PREDICT_ERROR_RESPONSES = {
     429: {
@@ -275,6 +290,7 @@ def start_prediction_job(
     """Start prediction as background job, return job_id immediately."""
     request_id = str(uuid4())
     ip = get_client_ip(request)
+    user_id = request.headers.get("X-User-Id")
     units = MODE_UNITS[mode]
 
     # Check limits before starting job
@@ -282,7 +298,7 @@ def start_prediction_job(
     check_budget()
 
     # Record request
-    db.record_request(request_id, ip, units)
+    db.record_request(request_id, ip, units, user_id)
 
     # Create job and run in background
     job = jobs.create()
@@ -365,6 +381,16 @@ async def predict_status(job_id: str):
         result=job.result if job.status == JobStatus.COMPLETED else None,
         error=job.error if job.status == JobStatus.FAILED else None,
     )
+
+
+@app.get("/history", response_model=HistoryResponse)
+async def get_history(request: Request, limit: int = 50, offset: int = 0):
+    """Get prediction history for the current user."""
+    user_id = request.headers.get("X-User-Id")
+    if not user_id:
+        return HistoryResponse(items=[])
+    items = db.get_history(user_id, limit, offset)
+    return HistoryResponse(items=[HistoryItem(**item) for item in items])
 
 
 if __name__ == "__main__":

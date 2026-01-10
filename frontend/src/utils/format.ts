@@ -34,3 +34,18 @@ export function formatDateFromInput(localString: string): string {
   if (isNaN(date.getTime())) return '';
   return date.toISOString();
 }
+
+export function formatTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function truncate(text: string, maxLength = 80): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength - 3) + '...';
+}

@@ -1,6 +1,7 @@
 """Tests for FastAPI server."""
 
 import tempfile
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -166,6 +167,20 @@ class TestAgentsEndpoint:
         assert data["agents"][0]["rank"] == 0
 
 
+def wait_for_job(client, job_id: str, max_attempts: int = 10):
+    """Poll for job completion and return result."""
+    for _ in range(max_attempts):
+        response = client.get(f"/predict/status/{job_id}")
+        assert response.status_code == 200
+        data = response.json()
+        if data["status"] == "completed":
+            return data["result"]
+        if data["status"] == "failed":
+            raise AssertionError(f"Job failed: {data['error']}")
+        time.sleep(0.1)
+    raise AssertionError("Job did not complete in time")
+
+
 class TestPredictEndpoints:
     def test_predict_champion(self, client):
         response = client.post(
@@ -176,10 +191,13 @@ class TestPredictEndpoints:
             },
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "success"
-        assert data["prediction"] == 0.72
-        assert "request_id" in data
+        job_data = response.json()
+        assert "job_id" in job_data
+
+        result = wait_for_job(client, job_data["job_id"])
+        assert result["status"] == "success"
+        assert result["prediction"] == 0.72
+        assert "request_id" in result
 
     def test_predict_council(self, client):
         response = client.post(
@@ -190,10 +208,13 @@ class TestPredictEndpoints:
             },
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "success"
-        assert data["prediction"] == 0.70
-        assert len(data["agent_predictions"]) == 2
+        job_data = response.json()
+        assert "job_id" in job_data
+
+        result = wait_for_job(client, job_data["job_id"])
+        assert result["status"] == "success"
+        assert result["prediction"] == 0.70
+        assert len(result["agent_predictions"]) == 2
 
     def test_predict_selected(self, client):
         response = client.post(
@@ -204,9 +225,12 @@ class TestPredictEndpoints:
             },
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "success"
-        assert data["prediction"] == 0.65
+        job_data = response.json()
+        assert "job_id" in job_data
+
+        result = wait_for_job(client, job_data["job_id"])
+        assert result["status"] == "success"
+        assert result["prediction"] == 0.65
 
 
 class TestRateLimiting:
@@ -295,8 +319,8 @@ class TestBudgetLimit:
 
 
 class TestQueueFull:
-    def test_queue_full_returns_503(self, client, mock_predictor):
-        """Test that queue full error returns HTTP 503."""
+    def test_queue_full_returns_error_in_result(self, client, mock_predictor):
+        """Test that queue full error is returned in job result."""
         # Mock predictor to return a queue full failure
         mock_predictor.predict_champion.return_value = PredictionResult(
             status="error",
@@ -317,7 +341,12 @@ class TestQueueFull:
             json={"question": "Test?", "resolution_criteria": "Test"},
         )
 
-        assert response.status_code == 503
-        error = response.json()["detail"]
-        assert "Server busy" in error["message"]
-        assert error["error_code"] == "queue_full"
+        assert response.status_code == 200
+        job_data = response.json()
+        assert "job_id" in job_data
+
+        result = wait_for_job(client, job_data["job_id"])
+        assert result["status"] == "error"
+        assert result["error"] == "Server busy"
+        assert len(result["failures"]) == 1
+        assert result["failures"][0]["error_type"] == "queue_full"

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Layout } from './components/Layout';
 import { PredictionForm } from './components/PredictionForm';
 import { ComingSoon } from './components/ComingSoon';
+import { History } from './components/History';
 import type { Tab } from './types/app';
 
 function App() {
@@ -16,12 +17,7 @@ function App() {
           description="Submit multiple predictions at once. Upload a list of questions and receive probability forecasts for all of them."
         />
       )}
-      {activeTab === 'history' && (
-        <ComingSoon
-          title="Prediction History"
-          description="View your past predictions and their outcomes. Track your prediction accuracy over time."
-        />
-      )}
+      {activeTab === 'history' && <History />}
       {activeTab === 'stats' && (
         <ComingSoon
           title="Statistics"
