@@ -48,3 +48,6 @@ Thumbs.db
 
 # Other
 technical_rules.md
+*.db
+*.db-shm
+*.db-wal
