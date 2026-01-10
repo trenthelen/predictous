@@ -38,16 +38,17 @@ htmlcov/
 
 # Environment
 .env
+backend/.env
 
 # OS
 .DS_Store
 Thumbs.db
 
 # Cached agent code
-/agents/
+backend/agents/
 
 # Other
-technical_rules.md
+backend/technical_rules.md
 *.db
 *.db-shm
 *.db-wal
