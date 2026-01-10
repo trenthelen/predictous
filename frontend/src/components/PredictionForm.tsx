@@ -5,7 +5,7 @@ import type { PredictionMode } from '../types/api';
 import { getDefaultResolutionDate, formatDateForInput, formatDateFromInput } from '../utils/format';
 import { CategorySelect } from './CategorySelect';
 import { ModeSelector } from './ModeSelector';
-import { ProgressBar } from './ProgressBar';
+import { LoadingOverlay } from './LoadingOverlay';
 import { ResultDisplay } from './ResultDisplay';
 import { ErrorMessage } from './ErrorMessage';
 
@@ -132,8 +132,8 @@ export function PredictionForm() {
         </button>
       </form>
 
-      {/* Progress Bar */}
-      {loading && <ProgressBar elapsed={elapsed} />}
+      {/* Loading Overlay */}
+      {loading && <LoadingOverlay elapsed={elapsed} />}
 
       {/* Error */}
       {error && <ErrorMessage error={error} onDismiss={reset} />}
