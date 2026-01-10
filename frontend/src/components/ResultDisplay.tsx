@@ -2,6 +2,7 @@ import type { PredictResponse, PredictionMode } from '../types/api';
 import { formatPercentage, formatCost } from '../utils/format';
 import { AgentBreakdown } from './AgentBreakdown';
 import { FailureDisplay } from './FailureDisplay';
+import { Reasoning } from './Reasoning';
 
 interface ResultDisplayProps {
   result: PredictResponse;
@@ -32,6 +33,11 @@ export function ResultDisplay({ result, mode }: ResultDisplayProps) {
       {/* Council mode breakdown */}
       {mode === 'council' && result.agent_predictions.length > 0 && (
         <AgentBreakdown predictions={result.agent_predictions} />
+      )}
+
+      {/* Reasoning (foldable) */}
+      {result.agent_predictions.length > 0 && (
+        <Reasoning predictions={result.agent_predictions} />
       )}
 
       {/* Failures */}
