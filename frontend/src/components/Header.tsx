@@ -1,9 +1,11 @@
 import { ThemeToggle } from './ThemeToggle';
 import { HealthStatus } from './HealthStatus';
+import { Logo } from './Logo';
+import type { Tab } from '../types/app';
 
 interface HeaderProps {
-  activeTab: 'predict' | 'batch' | 'history' | 'stats';
-  onTabChange: (tab: 'predict' | 'batch' | 'history' | 'stats') => void;
+  activeTab: Tab;
+  onTabChange: (tab: Tab) => void;
 }
 
 export function Header({ activeTab, onTabChange }: HeaderProps) {
@@ -13,11 +15,7 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <svg className="h-6 w-6 text-teal-600 dark:text-cream-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
-              <path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-            </svg>
+            <Logo className="h-6 w-6 text-teal-600 dark:text-cream-200" />
             <span className="font-mono text-sm tracking-wider text-teal-800 dark:text-cream-100">
               PREDICTOUS
             </span>

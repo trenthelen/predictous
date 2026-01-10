@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Layout } from './components/Layout';
 import { PredictionForm } from './components/PredictionForm';
 import { ComingSoon } from './components/ComingSoon';
-
-type Tab = 'predict' | 'batch' | 'history' | 'stats';
+import type { Tab } from './types/app';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('predict');

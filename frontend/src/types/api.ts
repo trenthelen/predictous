@@ -55,8 +55,3 @@ export interface PredictResponse {
 }
 
 export type ErrorCode = 'rate_limit_exceeded' | 'budget_exceeded' | 'queue_full';
-
-export interface ErrorDetail {
-  message: string;
-  error_code: ErrorCode;
-}

@@ -14,7 +14,7 @@ export function useAgents(): UseAgentsResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
 
-  const fetch = async () => {
+  const loadAgents = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -28,8 +28,8 @@ export function useAgents(): UseAgentsResult {
   };
 
   useEffect(() => {
-    fetch();
+    loadAgents();
   }, []);
 
-  return { agents, loading, error, refetch: fetch };
+  return { agents, loading, error, refetch: loadAgents };
 }
