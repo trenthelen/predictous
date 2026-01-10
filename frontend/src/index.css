@@ -3,6 +3,9 @@
 
 @import "tailwindcss";
 
+/* Enable class-based dark mode */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Numinous-inspired color palette */
   --color-cream-50: #faf9f7;
