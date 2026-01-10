@@ -194,6 +194,29 @@ class HistoryResponse(BaseModel):
     items: list[HistoryItem]
 
 
+class AgentPredictionDetail(BaseModel):
+    """Agent prediction in detail view."""
+
+    prediction: Optional[float] = None
+    reasoning: Optional[str] = None
+    cost: float
+    status: str
+    error: Optional[str] = None
+
+
+class PredictionDetailResponse(BaseModel):
+    """Response for prediction detail endpoint."""
+
+    request_id: str
+    question: str
+    resolution_criteria: str
+    resolution_date: Optional[str] = None
+    categories: Optional[str] = None
+    prediction: Optional[float] = None
+    agent_predictions: list[AgentPredictionDetail]
+    timestamp: str
+
+
 # Common error responses for predict endpoints
 PREDICT_ERROR_RESPONSES = {
     429: {
@@ -391,6 +414,26 @@ async def get_history(request: Request, limit: int = 50, offset: int = 0):
         return HistoryResponse(items=[])
     items = db.get_history(user_id, limit, offset)
     return HistoryResponse(items=[HistoryItem(**item) for item in items])
+
+
+@app.get("/predictions/{request_id}", response_model=PredictionDetailResponse)
+async def get_prediction_detail(request_id: str):
+    """Get full prediction details by request_id. Public endpoint for sharing."""
+    detail = db.get_prediction_detail(request_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+    return PredictionDetailResponse(
+        request_id=detail["request_id"],
+        question=detail["question"],
+        resolution_criteria=detail["resolution_criteria"],
+        resolution_date=detail["resolution_date"],
+        categories=detail["categories"],
+        prediction=detail["prediction"],
+        agent_predictions=[
+            AgentPredictionDetail(**p) for p in detail["agent_predictions"]
+        ],
+        timestamp=detail["timestamp"],
+    )
 
 
 if __name__ == "__main__":

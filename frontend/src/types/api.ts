@@ -81,3 +81,23 @@ export interface HistoryItem {
 export interface HistoryResponse {
   items: HistoryItem[];
 }
+
+// Prediction detail types
+export interface AgentPredictionDetail {
+  prediction: number | null;
+  reasoning: string | null;
+  cost: number;
+  status: string;
+  error: string | null;
+}
+
+export interface PredictionDetail {
+  request_id: string;
+  question: string;
+  resolution_criteria: string;
+  resolution_date: string | null;
+  categories: string | null;
+  prediction: number | null;
+  agent_predictions: AgentPredictionDetail[];
+  timestamp: string;
+}

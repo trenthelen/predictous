@@ -151,3 +151,52 @@ class Database:
                 }
                 for row in cursor.fetchall()
             ]
+
+    def get_prediction_detail(self, request_id: str) -> dict | None:
+        """Get full prediction details by request_id."""
+        with self._lock:
+            cursor = self._conn.cursor()
+            # Get all agent predictions for this request
+            cursor.execute(
+                """
+                SELECT question, resolution_criteria, resolution_date, categories,
+                       prediction, reasoning, cost, status, error, timestamp
+                FROM predictions
+                WHERE request_id = ?
+                ORDER BY timestamp ASC
+                """,
+                (request_id,),
+            )
+            rows = cursor.fetchall()
+            if not rows:
+                return None
+
+            # First row has the request metadata
+            first = rows[0]
+            agent_predictions = [
+                {
+                    "prediction": row["prediction"],
+                    "reasoning": row["reasoning"],
+                    "cost": row["cost"],
+                    "status": row["status"],
+                    "error": row["error"],
+                }
+                for row in rows
+            ]
+            successful = [p for p in agent_predictions if p["status"] == "success"]
+            avg_prediction = (
+                sum(p["prediction"] for p in successful) / len(successful)
+                if successful
+                else None
+            )
+
+            return {
+                "request_id": request_id,
+                "question": first["question"],
+                "resolution_criteria": first["resolution_criteria"],
+                "resolution_date": first["resolution_date"],
+                "categories": first["categories"],
+                "prediction": avg_prediction,
+                "agent_predictions": agent_predictions,
+                "timestamp": first["timestamp"],
+            }

@@ -2,7 +2,11 @@ import { useEffect } from 'react';
 import { useHistory } from '../hooks/useHistory';
 import { formatPercentage, formatTimestamp, truncate } from '../utils/format';
 
-export function History() {
+interface HistoryProps {
+  onSelectPrediction?: (requestId: string) => void;
+}
+
+export function History({ onSelectPrediction }: HistoryProps) {
   const { items, loading, error, load } = useHistory();
 
   useEffect(() => {
@@ -48,9 +52,10 @@ export function History() {
   return (
     <div className="space-y-2">
       {items.map((item) => (
-        <div
+        <button
           key={item.request_id}
-          className="border border-cream-300 p-4 dark:border-teal-700"
+          onClick={() => onSelectPrediction?.(item.request_id)}
+          className="w-full border border-cream-300 p-4 text-left transition-colors hover:bg-cream-200/50 dark:border-teal-700 dark:hover:bg-teal-800/50"
         >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
@@ -73,7 +78,7 @@ export function History() {
               )}
             </div>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );

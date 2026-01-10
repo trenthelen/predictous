@@ -7,6 +7,7 @@ import type {
   JobResponse,
   JobStatusResponse,
   HistoryResponse,
+  PredictionDetail,
 } from '../types/api';
 import { getUserId } from '../utils/userId';
 
@@ -105,4 +106,9 @@ export async function fetchHistory(limit = 50, offset = 0): Promise<HistoryRespo
     headers: { 'X-User-Id': getUserId() },
   });
   return handleResponse<HistoryResponse>(response);
+}
+
+export async function fetchPredictionDetail(requestId: string): Promise<PredictionDetail> {
+  const response = await fetch(`${API_BASE}/predictions/${requestId}`);
+  return handleResponse<PredictionDetail>(response);
 }
