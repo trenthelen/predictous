@@ -11,6 +11,7 @@ from uuid import uuid4
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from agent_collector import AgentCollector, AgentStore
@@ -104,6 +105,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Predictous API", lifespan=lifespan)
+
+# CORS middleware for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Response models
