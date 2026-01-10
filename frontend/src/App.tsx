@@ -3,7 +3,7 @@ import { Layout } from './components/Layout';
 import { PredictionForm } from './components/PredictionForm';
 import { ComingSoon } from './components/ComingSoon';
 
-type Tab = 'predict' | 'history' | 'stats';
+type Tab = 'predict' | 'batch' | 'history' | 'stats';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('predict');
@@ -11,6 +11,12 @@ function App() {
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === 'predict' && <PredictionForm />}
+      {activeTab === 'batch' && (
+        <ComingSoon
+          title="Batch Processing"
+          description="Submit multiple predictions at once. Upload a list of questions and receive probability forecasts for all of them."
+        />
+      )}
       {activeTab === 'history' && (
         <ComingSoon
           title="Prediction History"

@@ -3,8 +3,8 @@ import { Header } from './Header';
 
 interface LayoutProps {
   children: ReactNode;
-  activeTab: 'predict' | 'history' | 'stats';
-  onTabChange: (tab: 'predict' | 'history' | 'stats') => void;
+  activeTab: 'predict' | 'batch' | 'history' | 'stats';
+  onTabChange: (tab: 'predict' | 'batch' | 'history' | 'stats') => void;
 }
 
 export function Layout({ children, activeTab, onTabChange }: LayoutProps) {

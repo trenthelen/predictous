@@ -21,7 +21,7 @@ export function LoadingOverlay({ elapsed }: LoadingOverlayProps) {
               GENERATING PREDICTION
             </h2>
             <p className="mt-2 text-sm text-teal-600/60 dark:text-cream-300/60">
-              Please wait while our agents analyze your question
+              Please bear with us — this is a thorough process. Our agents are researching current information, analyzing relevant data, and thoughtfully generating their prediction.
             </p>
           </div>
           <ProgressBar elapsed={elapsed} />

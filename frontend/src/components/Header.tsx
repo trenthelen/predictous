@@ -2,8 +2,8 @@ import { ThemeToggle } from './ThemeToggle';
 import { HealthStatus } from './HealthStatus';
 
 interface HeaderProps {
-  activeTab: 'predict' | 'history' | 'stats';
-  onTabChange: (tab: 'predict' | 'history' | 'stats') => void;
+  activeTab: 'predict' | 'batch' | 'history' | 'stats';
+  onTabChange: (tab: 'predict' | 'batch' | 'history' | 'stats') => void;
 }
 
 export function Header({ activeTab, onTabChange }: HeaderProps) {
@@ -25,7 +25,7 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
 
           {/* Navigation */}
           <nav className="flex items-center gap-6">
-            {(['predict', 'history', 'stats'] as const).map((tab) => (
+            {(['predict', 'batch', 'history', 'stats'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => onTabChange(tab)}
