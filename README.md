@@ -6,6 +6,7 @@ Open-source forecasting system built on [Bittensor Subnet 6: Numinous](https://n
 
 ## Features
 
+- **Numinous Integration** - Fetches agents and leaderboard from the Numinous API with caching
 - **Sandboxed Execution** - Agents run in isolated Docker containers with memory, CPU, and timeout limits
 - **Cost Control** - Per-agent budgets ($0.02 LLM, $0.10 search), global daily budget, and per-IP rate limits
 - **Concurrent Request Limits** - Max 2 active requests per IP to prevent resource hogging
