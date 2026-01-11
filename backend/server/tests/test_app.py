@@ -350,3 +350,50 @@ class TestQueueFull:
         assert result["error"] == "Server busy"
         assert len(result["failures"]) == 1
         assert result["failures"][0]["error_type"] == "queue_full"
+
+
+class TestConcurrentLimit:
+    def test_concurrent_limit_enforced(self, client, mock_predictor):
+        """Test that only 2 concurrent requests per IP are allowed."""
+        import threading
+
+        barrier = threading.Barrier(3)  # 2 slow jobs + main thread
+
+        def slow_predict(*args, **kwargs):
+            barrier.wait(timeout=5)  # Wait until all reach barrier
+            return PredictionResult(
+                status="success", prediction=0.5, total_cost=0.01
+            )
+
+        mock_predictor.predict_champion.side_effect = slow_predict
+
+        # Start 2 requests that will block
+        responses = []
+        def make_request():
+            r = client.post(
+                "/predict/champion",
+                json={"question": "Test?", "resolution_criteria": "Test"},
+            )
+            responses.append(r)
+
+        t1 = threading.Thread(target=make_request)
+        t2 = threading.Thread(target=make_request)
+        t1.start()
+        t2.start()
+
+        time.sleep(0.2)  # Let both requests start
+
+        # 3rd request should be rejected (limit is 2)
+        response = client.post(
+            "/predict/champion",
+            json={"question": "Test?", "resolution_criteria": "Test"},
+        )
+        assert response.status_code == 429
+        error = response.json()["detail"]
+        assert "already have a prediction in progress" in error["message"]
+        assert error["error_code"] == "request_in_progress"
+
+        # Release the barrier so threads can finish
+        barrier.wait(timeout=5)
+        t1.join()
+        t2.join()

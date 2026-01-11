@@ -54,7 +54,7 @@ export interface PredictResponse {
   error: string | null;
 }
 
-export type ErrorCode = 'rate_limit_exceeded' | 'budget_exceeded' | 'queue_full';
+export type ErrorCode = 'rate_limit_exceeded' | 'budget_exceeded' | 'queue_full' | 'request_in_progress';
 
 // Async job types
 export interface JobResponse {

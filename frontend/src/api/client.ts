@@ -34,6 +34,8 @@ export function getErrorMessage(error: ApiError): string {
       return 'The service has reached its daily capacity. Please try again tomorrow.';
     case 'queue_full':
       return 'The server is currently busy. Please wait a moment and try again.';
+    case 'request_in_progress':
+      return 'You already have a prediction in progress. Please wait for it to complete or check your History tab.';
     default:
       return error.message || 'An unexpected error occurred. Please try again.';
   }

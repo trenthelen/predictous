@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 # Config from environment
 RATE_LIMIT_REQUESTS_PER_DAY = int(os.environ.get("RATE_LIMIT_REQUESTS_PER_DAY", "20"))
 DAILY_BUDGET_USD = float(os.environ.get("DAILY_BUDGET_USD", "5.0"))
+MAX_CONCURRENT_REQUESTS_PER_IP = 2
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "")
 DATABASE_PATH = os.environ.get("DATABASE_PATH", "./predictous.db")
 
@@ -269,6 +270,19 @@ def check_budget() -> None:
         )
 
 
+def check_concurrent_limit(ip: str) -> None:
+    """Check if IP has too many active requests. Raises HTTPException if so."""
+    active = jobs.count_active_for_ip(ip)
+    if active >= MAX_CONCURRENT_REQUESTS_PER_IP:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "message": "You already have a prediction in progress. Please wait for it to complete.",
+                "error_code": "request_in_progress",
+            },
+        )
+
+
 MODE_UNITS = {"champion": 1, "council": 3, "selected": 1}
 
 
@@ -317,6 +331,7 @@ def start_prediction_job(
     units = MODE_UNITS[mode]
 
     # Check limits before starting job
+    check_concurrent_limit(ip)
     check_rate_limit(ip, units)
     check_budget()
 
@@ -324,7 +339,7 @@ def start_prediction_job(
     db.record_request(request_id, ip, units, user_id)
 
     # Create job and run in background
-    job = jobs.create()
+    job = jobs.create(ip=ip)
     jobs.run_in_background(
         job,
         _execute_prediction,
@@ -332,6 +347,7 @@ def start_prediction_job(
         prediction_request,
         mode,
         miner_uid,
+        ip=ip,
     )
 
     return JobResponse(job_id=job.id)
