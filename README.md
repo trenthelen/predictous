@@ -1,223 +1,111 @@
 # Predictous
 
-This is an open-source and free project, that aims to deliver a fully functional
-forecasting system build on Bittensor Sunbet 6: Numinous.
+> **Alpha (v0.1)** - Early development, expect rough edges.
 
-The main modules:
-1. Agent Collector - integrates with the Numinous API
-2. Agent Runner (Sandbox) - safe environment to run agents locally
-3. Predictor - orchestrates agent fetching and execution
+Open-source forecasting system built on [Bittensor Subnet 6: Numinous](https://numinouslabs.io/). Submit prediction questions and get probability estimates from top-ranked AI agents on the network.
 
-## Agent Collector
+## Features
 
-Fetches agent code from Numinous API with caching.
+- **Sandboxed Execution** - Agents run in isolated Docker containers with memory, CPU, and timeout limits
+- **Cost Control** - Per-agent budgets ($0.02 LLM, $0.10 search), global daily budget, and per-IP rate limits
+- **Concurrent Request Limits** - Max 2 active requests per IP to prevent resource hogging
+- **Prediction Modes** - Champion (top agent), Council (top 3 averaged), or Selected (specific agent)
+- **Shareable Predictions** - Each prediction gets a unique URL for sharing
+- **History** - Users can view their past predictions
 
-### Usage
+## Prerequisites
 
-```python
-from agent_collector import AgentCollector
+1. **Numinous Gateway** - Clone and run the official gateway from [numinouslabs/numinous](https://github.com/numinouslabs/numinous). You'll need your own Chutes and Desearch API keys.
 
-collector = AgentCollector()
+2. **Docker** - Must be installed and your user must be in the `docker` group:
+   ```bash
+   sudo usermod -aG docker $USER
+   # Log out and back in for changes to take effect
+   ```
 
-# By rank (0-indexed)
-uid, hotkey = collector.get_miner_by_rank(0)
-
-# Get agent (tries newest first, falls back on 4XX)
-result = collector.get_agent(uid, hotkey)
-if result:
-    version_id, code = result
-```
-
-### Caching
-
-| Data | TTL | Storage |
-|------|-----|---------|
-| Leaderboard | Until 11 PM UTC | Memory |
-| Agent list | Until 11 PM UTC | Memory |
-| Agent code (success) | Forever | `./agents/{version_id}.py` |
-| Agent code (4XX) | Until 11 PM UTC | Memory |
-
----
-
-## Agent Runner (Sandbox)
-
-Runs numinous-compatible agents in isolated Docker containers with cost tracking.
-
-### Usage
-
-```python
-from sandbox import SandboxManager
-
-with SandboxManager(gateway_url="http://localhost:8000") as manager:
-    result = manager.run_agent(
-        agent_code=open("my_agent.py").read(),
-        event_data={"event_id": "123", "title": "Will X happen?"},
-    )
-    print(f"Prediction: {result.output['prediction']}, Cost: ${result.cost:.4f}")
-```
-
-### Agent Interface
-
-Agents must define `agent_main(event_data: dict) -> dict`:
-
-```python
-def agent_main(event_data):
-    return {
-        "event_id": event_data["event_id"],
-        "prediction": 0.75,  # 0.0 to 1.0
-        "reasoning": "optional explanation",
-    }
-```
-
-### Resource Limits
-
-| Resource | Limit |
-|----------|-------|
-| Memory | 768 MB |
-| CPU | 0.5 cores |
-| Timeout | 120s (configurable) |
-| Chutes budget | $0.02 (configurable) |
-| Desearch budget | $0.10 (configurable) |
-
-### Configuration
-
-```python
-SandboxManager(
-    gateway_url="http://localhost:8000",  # gateway API
-    chutes_budget=0.02,                   # LLM cost limit per run
-    desearch_budget=0.10,                 # search/crawl cost limit per run
-    proxy_port=8888,                      # cost-tracking proxy port
-)
-```
-
-### Result
-
-```python
-result.status      # "success" or "error"
-result.output      # {"event_id", "prediction", "reasoning"}
-result.cost        # total cost in USD
-result.error       # error message if failed
-result.error_type  # TIMEOUT | CONTAINER_ERROR | INVALID_OUTPUT | AGENT_ERROR | BUDGET_EXCEEDED
-result.logs        # container stdout
-```
-
----
-
-## Predictor
-
-Orchestrates agent fetching and execution to produce predictions. Three modes available.
-
-### Usage
-
-```python
-from predictor import Predictor, PredictionRequest
-from agent_collector import AgentCollector
-from sandbox import SandboxManager
-
-collector = AgentCollector()
-with SandboxManager(gateway_url="http://localhost:8000") as manager:
-    predictor = Predictor(collector, manager)
-
-    request = PredictionRequest(
-        question="Will X happen?",
-        resolution_criteria="X is true if...",
-        resolution_date="2026-01-31",  # optional
-        categories=["topic1"],          # optional
-    )
-
-    # Champion mode: top agent only
-    result = predictor.predict_champion(request)
-
-    # Council mode: top 3 agents, averaged (runs in parallel)
-    result = predictor.predict_council(request)
-
-    # Selected mode: specific miner by UID
-    result = predictor.predict_selected(request, miner_uid=123)
-```
-
-### Modes
-
-| Mode | Agents | Aggregation | Failure Threshold |
-|------|--------|-------------|-------------------|
-| Champion | Top 1 | None | Must succeed |
-| Council | Top 3 | Average | At least 2 must succeed |
-| Selected | By UID | None | Must succeed |
-
-### Result
-
-```python
-result.status             # "success" or "error"
-result.prediction         # aggregated prediction (0.0-1.0)
-result.agent_predictions  # list of AgentPrediction
-result.failures           # list of AgentFailure
-result.total_cost         # total cost in USD
-result.error              # error message if failed
-```
-
----
-
-## Server
-
-FastAPI server exposing prediction endpoints with rate limiting and budget tracking.
-
-### Running
+## Backend Setup
 
 ```bash
-# Configure via .env (see .env.example)
+cd backend
+
+# Create virtual environment (using venv or uv)
+python -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your settings (GATEWAY_URL is required)
+
+# Run
 python -m server.app
 ```
 
-### Configuration
+The backend runs on `http://localhost:8080` by default.
 
-Environment variables (via `.env`):
+See [backend/README.md](backend/README.md) for module documentation.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SERVER_HOST` | `0.0.0.0` | Server bind address |
-| `SERVER_PORT` | `8080` | Server port |
-| `RATE_LIMIT_REQUESTS_PER_DAY` | `20` | Max requests per IP per day |
-| `DAILY_BUDGET_USD` | `5.0` | Global daily budget limit |
-| `GATEWAY_URL` | `http://localhost:8000` | Gateway API URL |
-| `DATABASE_PATH` | `./predictous.db` | SQLite database path |
+## Frontend Setup
 
-### Endpoints
+```bash
+cd frontend
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check with budget status |
-| `/agents` | GET | List available agents |
-| `/predict/champion` | POST | Top agent prediction |
-| `/predict/council` | POST | Top 3 agents averaged |
-| `/predict/selected/{miner_uid}` | POST | Specific agent by UID |
+npm install
 
-### Request Format
-
-```json
-{
-  "question": "Will BTC reach 100k by end of 2026?",
-  "resolution_criteria": "BTC price on Coinbase",
-  "resolution_date": "2026-12-31",
-  "categories": ["crypto"]
-}
+# Development
+npm run dev
 ```
 
-### Response Format
+The dev server runs on `http://localhost:5173` and proxies `/api` to the backend.
 
-```json
-{
-  "request_id": "uuid",
-  "status": "success",
-  "prediction": 0.72,
-  "agent_predictions": [...],
-  "failures": [],
-  "total_cost": 0.019,
-  "error": null
-}
-```
+See [frontend/README.md](frontend/README.md) for further documentation.
 
-### Error Responses
+## Running Locally
 
-| Status | Description |
-|--------|-------------|
-| 429 | Rate limit exceeded |
-| 503 | Daily budget exceeded |
+1. Start the Numinous gateway:
+   ```bash
+   cd numinous
+   source .venv/bin/activate
+   numi gateway start
+   ```
+
+2. Start the backend (in its own terminal):
+   ```bash
+   cd backend
+   source .venv/bin/activate
+   python -m server.app
+   ```
+
+3. Start the frontend dev server (in its own terminal):
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+Open `http://localhost:5173` in your browser.
+
+## Production Deployment
+
+For self-hosting with HTTPS:
+
+1. **Build frontend**:
+   ```bash
+   cd frontend
+   npm run build
+   ```
+
+2. **Generate SSL certificates** (or use certbot):
+   ```bash
+   ./nginx/generate-certs.sh
+   ```
+
+3. **Start the gateway and backend** using systemd, pm2, or similar.
+
+4. **Start nginx** (routes both frontend and API):
+   ```bash
+   docker compose up -d
+   ```
+
+The app will be available on ports 80 (redirects to 443) and 443.
