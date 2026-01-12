@@ -18,21 +18,11 @@ export function formatCost(cost: number): string {
 export function getDefaultResolutionDate(): string {
   const date = new Date();
   date.setFullYear(date.getFullYear() + 1);
-  return date.toISOString();
-}
-
-export function formatDateForInput(isoString: string): string {
-  // Convert ISO string to datetime-local format (YYYY-MM-DDTHH:mm)
-  if (!isoString) return '';
-  return isoString.slice(0, 16);
-}
-
-export function formatDateFromInput(localString: string): string {
-  // Convert datetime-local to ISO format with Z suffix
-  if (!localString) return '';
-  const date = new Date(localString);
-  if (isNaN(date.getTime())) return '';
-  return date.toISOString();
+  // Use noon UTC to avoid timezone date shifts
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}T12:00:00.000Z`;
 }
 
 export function formatTimestamp(timestamp: string): string {

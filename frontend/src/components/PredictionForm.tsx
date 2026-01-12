@@ -3,13 +3,14 @@ import { useAgents } from '../hooks/useAgents';
 import { usePrediction } from '../hooks/usePrediction';
 import { useHealth } from '../hooks/useHealth';
 import type { PredictionMode } from '../types/api';
-import { getDefaultResolutionDate, formatDateForInput, formatDateFromInput } from '../utils/format';
+import { getDefaultResolutionDate } from '../utils/format';
 import { CategorySelect } from './CategorySelect';
 import { ModeSelector } from './ModeSelector';
 import { LoadingOverlay } from './LoadingOverlay';
 import { ResultDisplay } from './ResultDisplay';
 import { ErrorMessage } from './ErrorMessage';
 import { Tooltip } from './Tooltip';
+import { DateInput } from './DateInput';
 
 export function PredictionForm() {
   const [question, setQuestion] = useState('');
@@ -103,15 +104,14 @@ export function PredictionForm() {
         <div className="space-y-3">
           <label htmlFor="date" className="heading-caps text-teal-600/60 dark:text-cream-300/60">
             Resolution Date
-            <Tooltip content="Optional. The date when this question should be resolved. Most agents do not use this value for their predictions." />
+            <Tooltip content="Optional. The date when this question should be resolved. Most agents do not use this value for their predictions. Formats: YYYY-MM-DD or DD.MM.YYYY" />
           </label>
-          <input
-            type="datetime-local"
+          <DateInput
             id="date"
-            value={formatDateForInput(resolutionDate)}
-            onChange={(e) => setResolutionDate(formatDateFromInput(e.target.value))}
+            value={resolutionDate}
+            onChange={setResolutionDate}
             disabled={loading}
-            className="w-full border border-cream-300 bg-transparent px-4 py-3 text-teal-800 dark:border-teal-700 dark:text-cream-100"
+            className="w-full border border-cream-300 bg-transparent px-4 py-3 text-teal-800 dark:border-teal-700 dark:text-cream-100 dark:placeholder:text-cream-300/40"
           />
         </div>
 
