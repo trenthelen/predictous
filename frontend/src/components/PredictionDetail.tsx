@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Markdown from 'react-markdown';
 import type { PredictionDetail as PredictionDetailType } from '../types/api';
 import { fetchPredictionDetail, ApiError } from '../api/client';
 import { formatPercentage, formatTimestamp, formatCost } from '../utils/format';
@@ -167,9 +168,9 @@ export function PredictionDetail({ requestId, onBack }: PredictionDetailProps) {
                 </div>
                 {pred.reasoning && (
                   <div className="border-t border-cream-300 px-4 py-3 dark:border-teal-700">
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-teal-700 dark:text-cream-200">
-                      {pred.reasoning}
-                    </p>
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-teal-700 dark:text-cream-200">
+                      <Markdown>{pred.reasoning}</Markdown>
+                    </div>
                   </div>
                 )}
               </div>

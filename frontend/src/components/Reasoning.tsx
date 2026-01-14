@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Markdown from 'react-markdown';
 import type { AgentPrediction } from '../types/api';
 
 interface ReasoningProps {
@@ -36,9 +37,9 @@ export function Reasoning({ predictions }: ReasoningProps) {
                   RANK {pred.rank + 1} / UID {pred.miner_uid}
                 </div>
               )}
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-teal-700 dark:text-cream-200">
-                {pred.reasoning}
-              </p>
+              <div className="prose prose-sm dark:prose-invert max-w-none text-teal-700 dark:text-cream-200">
+                <Markdown>{pred.reasoning}</Markdown>
+              </div>
             </div>
           ))}
         </div>

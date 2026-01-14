@@ -2,6 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
 
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Enable class-based dark mode */
 @variant dark (&:where(.dark, .dark *));

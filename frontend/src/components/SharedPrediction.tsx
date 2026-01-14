@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Markdown from 'react-markdown';
 import type { PredictionDetail } from '../types/api';
 import { fetchPredictionDetail, ApiError } from '../api/client';
 import { Logo } from './Logo';
@@ -227,9 +228,9 @@ export function SharedPrediction({ requestId }: SharedPredictionProps) {
                             AGENT {index + 1}
                           </div>
                         )}
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-teal-700 dark:text-cream-200">
-                          {pred.reasoning}
-                        </p>
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-teal-700 dark:text-cream-200">
+                          <Markdown>{pred.reasoning}</Markdown>
+                        </div>
                       </div>
                     ))}
                   </div>
